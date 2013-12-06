@@ -1,0 +1,48 @@
+!!!
+%html
+  %head
+    %title New Page
+    %meta{:name=>"viewport", :content=>"width=device-width, initial-scale=1.0"}
+    %title New Page
+    %link{:href=>"/bootstrap/css/bootstrap.min.css", :rel=>"stylesheet", :media=>"screen"}
+    %link{:href=>"/css/common.css", :rel=>"stylesheet", :media=>"screen"}
+
+  %body
+    .navbar.navbar-inverse.navbar-fixed-top
+      .container
+        .navbar-header
+          %button.navbar-toggle{"data-target" => ".navbar-collapse", "data-toggle" => "collapse", :type => "button"}
+            %span.icon-bar
+            %span.icon-bar
+            %span.icon-bar
+          %a.navbar-brand{:href => "/"} Product Dashboard
+        .collapse.navbar-collapse
+          %ul.nav.navbar-nav
+            %li
+              %a{:href => "/"} Home
+
+    %form{:action => "/page/#{@page_id}", :method => "POST"}
+      %p
+        %h3 Title
+        %input{:name => "title", :type => "text", :value => "#{@page['title']}", :style => "width: 100%;"}
+      %p
+        %h3 Content
+        %textarea{:name => "content", :style => "width: 100%; height: 250px;"}= @page['content']
+      %input{:type => "submit", :value => "Submit", :class=>'btn btn-success'}
+      %button{:type=>'button', :class=>'btn btn-danger', 'data-toggle'=>'modal', 'data-target'=>'#confirm-delete'}Delete
+    %script{:src=>"/js/jquery-2.0.3.min.js"}
+    %script{:src=>"/bootstrap/js/bootstrap.min.js"}
+
+  %div{:class=>'modal fade', :id=>'confirm-delete', :role=>'dialog', 'aria-labelledby'=>'myModalLabel', 'myModalLabel'=>'true'}
+    %div{:class=>'modal-dialog'}
+      %div{:class=>'modal-content'}
+        %div{:class=>'modal-header'}
+          %button{:type=>'button', :class=>'close', 'data-dismiss'=>'modal'}
+          %h4{:class=>'modal-title'}Delete page?
+        %div{:class=>'modal-body'}
+          %p This deletion will be permanent. Continue?
+        %div{:class=>'modal-footer'}
+          %button{:type=>'button', :class=>'btn btn-default', 'data-dismiss'=>'modal', 'aria-hidden'=>'true'}Cancel
+          %form{:method=>'post', :action=>"/page/#{@page_id}", :style=>'display: inline'}
+            %input{:type=>'hidden', :name=>'delete_page', :value=>'true'}
+            %input{:type=>'submit', :class=>'btn btn-danger', 'aria-hidden'=>'true', :value=>'Delete'}

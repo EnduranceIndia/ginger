@@ -1,0 +1,45 @@
+!!!
+%html
+  %head
+    %title Show Page
+    %meta{:name=>"viewport", :content=>"width=device-width, initial-scale=1.0"}
+    %title New Page
+    %link{:href=>"/bootstrap/css/bootstrap.min.css", :rel=>"stylesheet", :media=>"screen"}
+    %link{:href=>"/bootstrap/css/bootstrap-theme.min.css", :rel=>"stylesheet", :media=>"screen"}
+    %link{:href=>"/bootstrap/css/bootstrap-site-theme.css", :rel=>"stylesheet", :media=>"screen"}
+    %link{:href=>"/css/common.css", :rel=>"stylesheet", :media=>"screen"}
+    %script{:type=>"text/javascript", :src=>"https://www.google.com/jsapi"}
+  %body
+    .navbar.navbar-inverse.navbar-fixed-top
+      .container
+        .navbar-header
+          %button.navbar-toggle{"data-target" => ".navbar-collapse", "data-toggle" => "collapse", :type => "button"}
+            %span.icon-bar
+            %span.icon-bar
+            %span.icon-bar
+          %a.navbar-brand{:href => "/"} Product Dashboard
+        .collapse.navbar-collapse
+          %ul.nav.navbar-nav
+            %li
+              %a{:href => "/"} Home
+            %li{:class=>'dropdown'}
+              %a{:href => "#", :class=>"dropdown-toggle", 'data-toggle'=>'dropdown'}
+                Page
+                %b{:class=>'caret'}
+              %ul{:class=>"dropdown-menu"}
+                %li
+                  %a{:href=>"#{add_cache_request(request.url)}"}Cache
+                %li
+                  %a{:href=>"#{get_edit_link(request.url)}"}Edit
+
+    - if @cached_time
+      %div{:class=>'alert alert-warning'}
+        = @cached_time
+        %form{:method=>'post', :style=>'display: inline'}
+          %input{:type=>'hidden', :name=>'destroy_cache', :value=>'true'}
+          %input{:type=>'submit', :class=>'btn btn-danger', :value=>"Clear cache"}
+    %h2= @page['title']
+    %p
+      = @page['content']
+    %script{:src=>"/js/jquery-2.0.3.min.js"}
+    %script{:src=>"/bootstrap/js/bootstrap.min.js"}

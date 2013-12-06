@@ -1,0 +1,11 @@
+.DS_Store
+Gemfile.lock
+files/*
+config.ru
+*.swp
+Capfile
+deploy*
+unicorn.rb
+config_production.rb
+config_development.rb
+

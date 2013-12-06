@@ -1,0 +1,29 @@
+table {
+	border: 1px solid;
+	border-color: #dddddd;
+}
+
+td, th {
+	padding: 5px;
+}
+
+th {
+	background-color: #dddddd;
+}
+
+.widget-300 {
+	float: left;
+	width: 300px;
+	margin-left: 5px;
+	margin-bottom: 5px;
+}
+
+.widget-400 {
+	float: left;
+	width: 400px;
+}
+
+.widget-500 {
+	float: left;
+	width: 500px;
+}
