@@ -119,6 +119,35 @@ def get_query_from_template(connection, query, request_params)
 	return new_data + matchable
 end
 
+def get_text_template(pre_match, user_variables, request_params)
+	matchable = pre_match
+	new_data = ""
+
+	until ((match = /<([^<]*?)::(\w+)::(.*?)>/.match(matchable)) == nil)
+		post_match = match.post_match
+		pre_match = match.pre_match
+
+		pre = match[1]
+		param_name = match[2]
+		post = match[3]
+
+		new_data += pre_match
+
+		if user_variables.has_key?(param_name)
+			new_data += pre + (user_variables[param_name] ? user_variables[param_name].to_s : "") + post
+		elsif request_params.has_key?(param_name)
+			value = request_params[param_name][:value]
+			type = request_params[param_name][:type]
+
+			new_data += pre + (user_variables[param_name] ? user_variables[param_name].to_s : "") + post
+		end
+
+		matchable = post_match
+	end
+
+	return new_data + matchable
+end
+
 get '/' do
 	@list_of_pages = list_of_pages
 	haml :page_list
@@ -166,29 +195,31 @@ get '/page/:page_id' do
 
 			@cached_time = "This page was cached #{@cached_time} ago."
 		else
-			@page['content'] = execute_template(@page['content']) {|template_params, query|
+			@page['content'] = execute_template(@page['content']) {|pre_match, template_params, query|
+				pre_match = get_text_template(pre_match, stored_data[:user_variables], stored_data[:request_params])
+
 				if template_params['display'] == 'panel'
-					"table{float:left; margin-right:10px; margin-bottom: 10px}."
+					pre_match + "table{float:left; margin-right:10px; margin-bottom: 10px}."
 				elsif template_params['display'] == 'panel_end'
-					"<div style='clear: both;'></div>"
+					pre_match + "<div style='clear: both;'></div>"
 				elsif template_params.has_key?('input')
 					if template_params['input'] == 'dropdown'
 						if !template_params.has_key?('name')
-							"[No name specified for input field.]"
+							pre_match + "[No name specified for input field.]"
 						elsif !template_params.has_key?('type')
-							"[No type specified for input field.]"
+							pre_match + "[No type specified for input field.]"
 						elsif !template_params.has_key?('title')
-							"[No title specified for input field.]"
+							pre_match + "[No title specified for input field.]"
 						elsif !template_params.has_key?('options')
-							"[No options have been specified for input #{template_params['name']}.]"
+							pre_match + "[No options have been specified for input #{template_params['name']}.]"
 						elsif !template_params.has_key?('ids')
-							"[No ids have been specified for input #{template_params['name']}.]"
+							pre_match + "[No ids have been specified for input #{template_params['name']}.]"
 						else
 							options = template_params['options'].split(',')
 							ids = template_params['ids'].split(',')
 
 							if options.length != ids.length
-								"[Options and ids of input #{template_params['name']} are not of equal length.]"
+								pre_match + "[Options and ids of input #{template_params['name']} are not of equal length.]"
 							else
 								name = strip_quotes(template_params['name'])
 								title = strip_quotes(template_params['title'])
@@ -209,11 +240,11 @@ get '/page/:page_id' do
 
 								html += "</select></span>"
 
-								html
+								pre_match + html
 							end
 						end
 					elsif template_params['input'] == 'submit'
-						"<input type=\"submit\" value=\"Query\"></input>"
+						pre_match + "<input type=\"submit\" value=\"Query\"></input>"
 					end
 				elsif template_params.has_key?('store')
 					value = nil
@@ -221,16 +252,16 @@ get '/page/:page_id' do
 
 					if template_params.has_key?('case')
 						if !template_params.has_key?('options')
-							"[options have not been specified for case statement.]"
+							pre_match + "[options have not been specified for case statement.]"
 						elsif !template_params.has_key?('values')
-							"[values have not been specified for case statement.]"
+							pre_match + "[values have not been specified for case statement.]"
 						end
 						
 						options = template_params['options'].split(',').collect {|val| strip_quotes(val) }
 						values = template_params['values'].split(',').collect {|val| strip_quotes(val) }
 
 						if options.length != values.length
-							"[There must be as many options as values, no more or less.]"
+							pre_match + "[There must be as many options as values, no more or less.]"
 						else
 							_case = template_params['case']
 							index = options.index(stored_data[:user_variables][_case])
@@ -250,64 +281,72 @@ get '/page/:page_id' do
 					end
 
 					if error
-						error
+						pre_match + error
 					else
 						stored_data[:user_variables][template_params['store']] = value
-						""
+						pre_match
 					end
 				elsif template_params.has_key?('datasource')
 					conf = get_conf
 					datasource_name = template_params['datasource']
 					datasource = conf['datasources'][datasource_name]
 
+					error = nil
+
 					if !datasource
-						"[Datasource not found]"
+						pre_match + "[Datasource not found]"
 					else
 						connection = connect(datasource, template_params['database'])
 						query = get_query_from_template(connection, query, stored_data[:request_params])
 						cols, resultset = [nil, nil]
+
 						begin
 							cols, resultset = connection.query_table(query)
 						rescue Object => e
 							puts "Error running query #{query}"
-							puts "Exception: {e.message}"
+							puts "Exception message: {e.message}"
 							puts e.backtrace
 
-							raise e
+							error = "[Error running query: #{query}]<br />"
+							error += "[Exception message: #{e.message}]<br />"
+							error += e.backtrace.join("<br />")
 						end
 
-						if template_params.has_key?('store')
+						if error
+							pre_match + error
+						elsif template_params.has_key?('store')
 							stored_data[:user_variables][template_params['store']] = resultset
+							pre_match
 						elsif template_params['format'] == 'table'
-							render_table(cols, resultset)
+							pre_match + render_table(cols, resultset)
 						elsif template_params['format'] == 'scalar'
-							resultset[0][0]
+							pre_match + resultset[0][0].to_s
 						elsif ['line_chart', 'bar_chart', 'pie_chart'].include?(template_params['format'])
-							emit_chart(template_params['format'].to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i)
+							pre_match + emit_chart(template_params['format'].to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i)
 						end
 					end
 				elsif template_params.has_key?('fetch')
 					value = stored_data[:user_variables][template_params['fetch']]
 
 					if value == nil
-						"[No value found for the key '#{template_params['fetch']}']"
+						pre_match + "[No value found for the key '#{template_params['fetch']}']"
 					else
 						if template_params.has_key?('format') && template_params['format'] == 'table'
 							if (!template_params.has_key?('cols'))
-								"[Tabular data cannot be specified without columns.]"
+								pre_match + "[Tabular data cannot be specified without columns.]"
 							else
-								render_table(template_params['cols'].split(','), value)
+								pre_match + render_table(template_params['cols'].split(','), value)
 							end
 						else
 							if value.is_a?(Array)
-								value[0][0]
+								pre_match + value[0][0]
 							else
-								value
+								pre_match + value
 							end
 						end
 					end
 				else
-					"[No command was recognized.]"
+					pre_match
 				end
 			}
 

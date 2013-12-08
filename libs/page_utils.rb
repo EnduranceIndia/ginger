@@ -104,7 +104,7 @@ class Job
 	end
 
 	def execute
-		@procedure.call(@params, @query).to_s
+		@procedure.call(@pre_match, @params, @query).to_s
 	end
 end
 
@@ -133,7 +133,7 @@ def execute_template(data, &procedure)
 		if piece[:params].has_key?('datasource')
 			jobs << Job.new(index, piece, procedure)
 		else
-			piece[:output] = procedure.call(piece[:params], piece[:query])
+			piece[:output] = procedure.call(piece[:pre_match], piece[:params], piece[:query])
 		end
 	}
 
@@ -141,7 +141,8 @@ def execute_template(data, &procedure)
 		[job.index, job.execute]
 	}.each {|index, output| pieces[index][:output] = output }
 
-	pieces.collect {|piece| piece[:pre_match] + piece[:output] }.join + matchable
+	matchable = procedure.call(matchable, {}, "")
+	pieces.collect {|piece| piece[:output] }.join + matchable
 end
 
 def format_column(col)
