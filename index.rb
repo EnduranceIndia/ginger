@@ -241,18 +241,18 @@ get '/page/:page_id' do
 								title = strip_quotes(template_params['title'])
 								type = template_params['type']
 
-								param_name = "param_#{name}"
+								param_name = "p_#{name}"
 								if params.has_key?(param_name) && params[param_name].length > 0
 									stored_data[:request_params][name] = {:value => params[param_name], :type => type}
 								end
 
 								puts stored_data.inspect
 
-								html = "<span><select name=param_#{name}><option value=''>[#{title}]</option>"
+								html = "<span><select name=p_#{name}><option value=''>[#{title}]</option>"
 
 								options.zip(ids).each {|option, id|
 									option = strip_quotes(option)
-									selected_state = params["param_#{name}"] == id ? "selected=true" : ""
+									selected_state = params["p_#{name}"] == id ? "selected=true" : ""
 									html += "<option value='#{id}' #{selected_state}>#{option}</option>"
 								}
 
