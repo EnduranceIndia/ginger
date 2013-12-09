@@ -198,6 +198,26 @@ get '/page/:page_id' do
 			@page['content'] = execute_template(@page['content']) {|pre_match, template_params, query|
 				pre_match = get_text_template(pre_match, stored_data[:user_variables], stored_data[:request_params])
 
+				template_params.keys.each {|key|
+					value = template_params[key]
+
+					puts "#{key} = #{value}"
+					if value.is_a?(String) && (match = /::(\w+)::/.match(value))
+						variable_name = match[1]
+						puts "VALUE matched. variable_name: #{variable_name}"
+
+						value = ""
+
+						if stored_data[:user_variables].has_key?(variable_name)
+							value = stored_data[:user_variables][variable_name]
+						end
+
+						template_params[key] =  value
+					end
+				}
+
+				puts
+
 				if template_params['display'] == 'panel'
 					pre_match + "table{float:left; margin-right:10px; margin-bottom: 10px}."
 				elsif template_params['display'] == 'panel_end'

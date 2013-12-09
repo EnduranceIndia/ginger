@@ -79,7 +79,7 @@ def write_cached_page(page_id, params, content)
 end
 
 def parse_params(params)
-	matches = params.scan(/\w+=(?:\w+|"[\w ]+")(?:,(?:\w+|"[\w ]+"))*/)
+	matches = params.scan(/\w+=(?:\w+|::\w+::|"[\w ]+")(?:,(?:\w+|::\w+::|"[\w ]+"))*/)
 
 	return {} if matches.length == 0
 
