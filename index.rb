@@ -201,10 +201,8 @@ get '/page/:page_id' do
 				template_params.keys.each {|key|
 					value = template_params[key]
 
-					puts "#{key} = #{value}"
 					if value.is_a?(String) && (match = /::(\w+)::/.match(value))
 						variable_name = match[1]
-						puts "VALUE matched. variable_name: #{variable_name}"
 
 						value = ""
 
@@ -215,8 +213,6 @@ get '/page/:page_id' do
 						template_params[key] =  value
 					end
 				}
-
-				puts
 
 				if template_params['display'] == 'panel'
 					pre_match + "table{float:left; margin-right:10px; margin-bottom: 10px}."
@@ -249,6 +245,8 @@ get '/page/:page_id' do
 								if params.has_key?(param_name) && params[param_name].length > 0
 									stored_data[:request_params][name] = {:value => params[param_name], :type => type}
 								end
+
+								puts stored_data.inspect
 
 								html = "<span><select name=param_#{name}><option value=''>[#{title}]</option>"
 
@@ -286,10 +284,12 @@ get '/page/:page_id' do
 							_case = template_params['case']
 							index = options.index(stored_data[:user_variables][_case])
 
+							if index == nil && stored_data[:request_params][_case] != nil
+								index = options.index(stored_data[:request_params][_case][:value])
+							end
+							
 							if index
 								value = values[index]
-							elsif options.index(params["param_#{_case}"])
-								value = params["param_#{_case}"]
 							elsif template_params['default']
 								value = template_params['default']
 							else
