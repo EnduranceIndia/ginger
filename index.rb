@@ -131,16 +131,22 @@ def get_text_template(pre_match, user_variables, request_params)
 		param_name = match[2]
 		post = match[3]
 
+		puts match.inspect
+		puts request_params.inspect
+
 		new_data += pre_match
 
 		if user_variables.has_key?(param_name)
 			new_data += pre + (user_variables[param_name] ? user_variables[param_name].to_s : "") + post
 		elsif request_params.has_key?(param_name)
-			value = request_params[param_name][:value]
+			value = request_params[param_name][:value] || ""
 			type = request_params[param_name][:type]
 
-			new_data += pre + (user_variables[param_name] ? user_variables[param_name].to_s : "") + post
+			new_data += pre + value + post
 		end
+
+		puts new_data.inspect
+		puts 
 
 		matchable = post_match
 	end
