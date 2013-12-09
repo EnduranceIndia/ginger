@@ -291,7 +291,7 @@ get '/page/:page_id' do
 							if index
 								value = values[index]
 							elsif template_params['default']
-								value = template_params['default']
+								value = strip_quotes(template_params['default'])
 							else
 								error = "[Value not found.]"
 							end
