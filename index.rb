@@ -14,13 +14,6 @@ require 'redcloth'
 
 base_files_directory = get_conf['base_files_directory']
 
-stored_data = {
-	:request_params => {
-	},
-	:user_variables => {
-	}
-}
-
 def add_cache_request(url)
 	return if url.index('cache=true') != nil
 	return url + '&cache=true' if url.index('?') != nil
@@ -172,6 +165,14 @@ get '/page/:page_id/edit' do
 end
 
 get '/page/:page_id' do
+	stored_data = {
+		:request_params => {
+		},
+		:user_variables => {
+		}
+	}
+
+
 	@page_id = params[:page_id]
 
 	if page_exists(@page_id)
