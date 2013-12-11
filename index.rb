@@ -14,6 +14,26 @@ require 'redcloth'
 
 base_files_directory = get_conf['base_files_directory']
 
+def parse_param_data(template_params)
+	name = strip_quotes(template_params['name'])
+	title = strip_quotes(template_params['title'])
+	type = template_params['type']
+
+	return name, title, type
+end
+
+def store_param_data(stored_data, template_params, params, name, title, type)
+	param_name = "p_#{name}"
+
+	if params.has_key?(param_name) && params[param_name].length > 0
+		stored_data[:request_params][name] = {:value => params[param_name], :type => type}
+	else
+		if (template_params['required'] || "").downcase == 'true'
+			raise StopEvaluation.new(title)
+		end
+	end
+end
+
 def add_cache_request(url)
 	return if url.index('cache=true') != nil
 	return url + '&cache=true' if url.index('?') != nil
@@ -228,7 +248,20 @@ get '/page/:page_id' do
 					elsif template_params['display'] == 'panel_end'
 						pre_match + "<div style='clear: both;'></div>"
 					elsif template_params.has_key?('input')
-						if template_params['input'] == 'dropdown'
+						if template_params['input'] == 'text'
+							if !template_params.has_key?('name')
+								pre_match + "[No name specified for input field.]"
+							elsif !template_params.has_key?('type')
+								pre_match + "[No type specified for input field.]"
+							elsif !template_params.has_key?('title')
+								pre_match + "[No title specified for input field.]"
+							end
+
+							name, title, type = parse_param_data(template_params)
+							store_param_data(stored_data, template_params, params, name, title, type)
+
+							pre_match + "#{title} <input type='textbox' name='p_#{name}'></input>"
+						elsif template_params['input'] == 'dropdown'
 							if !template_params.has_key?('name')
 								pre_match + "[No name specified for input field.]"
 							elsif !template_params.has_key?('type')
@@ -246,18 +279,8 @@ get '/page/:page_id' do
 								if options.length != ids.length
 									pre_match + "[Options and ids of input #{template_params['name']} are not of equal length.]"
 								else
-									name = strip_quotes(template_params['name'])
-									title = strip_quotes(template_params['title'])
-									type = template_params['type']
-
-									param_name = "p_#{name}"
-									if params.has_key?(param_name) && params[param_name].length > 0
-										stored_data[:request_params][name] = {:value => params[param_name], :type => type}
-									else
-										if (template_params['required'] || "").downcase == 'true'
-											raise StopEvaluation.new(title)
-										end
-									end
+									name, title, type = parse_param_data(template_params)
+									store_param_data(stored_data, template_params, params, name, title, type)
 
 									puts stored_data.inspect
 
