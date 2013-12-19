@@ -304,7 +304,15 @@ get '/page/:page_id' do
 					template_params = parameters[:data][:arguments] || {}
 					
 					conf = get_conf
-					datasource_name = parameters[:data][:datasource].to_s
+
+					datasource_name = nil
+
+					if parameters[:data][:datasource_variable]
+						datasource_name = stored_data[:user_variables][parameters[:data][:datasource_variable].to_s]
+					else
+						datasource_name = parameters[:data][:datasource].to_s
+					end
+
 					datasource = conf['datasources'][datasource_name]
 					
 					error = nil

@@ -27,7 +27,7 @@ class GingerParser < Parslet::Parser
 	rule(:query_text_fragment) { (match['^<:]'] | query_expression.absent? >> str('<') | str(':') >> str(':').absent? >> str(']').absent? ).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
 
-	rule(:data) { str('[:') >> unquoted_word.as(:datasource) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> match['^:'].repeat(1).as(:query) >> whitespace >> str(':]') }
+	rule(:data) { str('[:') >> (str('::') >> unquoted_word.as(:datasource_variable) >> str('::') |  unquoted_word.as(:datasource)) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> match['^:'].repeat(1).as(:query) >> whitespace >> str(':]') }
 
 	rule(:non_open_symbols) { match['^<\['] | str('<') >> str(':').absent? }
 	rule(:text) { non_open_symbols.repeat(1) }
@@ -69,8 +69,3 @@ def parse_ginger_doc(doc)
 
 	transform.apply(result)
 end
-
-
-#puts parse_ginger_doc('test <:case:source:dest (options=a,b,c ids=1,2,3) :> <:input:dropdown (options=a,b,c,d ids="1,2,3,4") :> <:mdh select test from ::var:: <where 1=::var:: and a=b> :>').inspect
-#puts parse_ginger_doc('hello world <:a=1 :> abc<: b=\'2\' :> var reference: <: a :>, <:b:> Display: <:mdh:table select * from orders :>').inspect
-
