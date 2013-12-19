@@ -23,13 +23,13 @@ class GingerParser < Parslet::Parser
 
 	rule(:arguments) { str('(') >> (whitespace >> unquoted_word.as(:key) >> whitespace >> str('=') >> whitespace >> (sequence | quoted_string | unquoted_word).as(:value)).repeat >> str(')') }
 	rule(:query_variable) { str('::') >> unquoted_word.as(:variable) >> str('::') }
-	rule(:query_expression) { str('<') >> (match['^:'] | str(':') >> str(':').absent?).repeat.as(:pre_text) >> query_variable >> match['^>'].repeat.as(:post_text) >> str('>') }
-	rule(:query_text_fragment) { (match['^<:>'] | query_expression.absent? >> str('<') | str(':') >> str(':').absent? >> str('>').absent? ).repeat(1) }
+	rule(:query_expression) { str('<') >> (match['^:'] | str(':') >> str(':').absent?).repeat.as(:pre_text) >> query_variable >> match['^]'].repeat.as(:post_text) >> str('>') }
+	rule(:query_text_fragment) { (match['^<:]'] | query_expression.absent? >> str('<') | str(':') >> str(':').absent? >> str(']').absent? ).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
 
-	rule(:data) { open_bracket >> unquoted_word.as(:datasource) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> query.as(:query) >> close_bracket }
+	rule(:data) { str('[:') >> unquoted_word.as(:datasource) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> match['^:'].repeat(1).as(:query) >> whitespace >> str(':]') }
 
-	rule(:non_open_symbols) { match['^<'] | str('<') >> str(':').absent? }
+	rule(:non_open_symbols) { match['^<\['] | str('<') >> str(':').absent? }
 	rule(:text) { non_open_symbols.repeat(1) }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }

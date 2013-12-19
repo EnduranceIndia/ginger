@@ -163,6 +163,7 @@ get '/page/:page_id' do
 		else
 			begin
 				pieces = parse_ginger_doc(@page['content'])
+				puts pieces.inspect
 
 				pass1 = []
 				pass2 = []
@@ -313,39 +314,45 @@ get '/page/:page_id' do
 					else
 						connection = connect(datasource, template_params['database'])
 
-						query = parameters[:data][:query].collect {|item|
-							if item[:text]
-								item[:text]
-							elsif item[:variable]
-								variable_name = item[:variable]	.to_s
+						query = parameters[:data][:query]
 
-								if stored_data[:user_variables].has_key?(variable_name)
-									(stored_data[:user_variables][variable_name] || "")
-								elsif request_params.has_key?(variable_name)
-									value = request_params[variable_name][:value] || ""
-									type = request_params[variable_name][:type]
+						if !query.is_a?(Array)
+							query = query.to_s
+						else
+							query = parameters[:data][:query].collect {|item|
+								if item[:text]
+									item[:text]
+								elsif item[:variable]
+									variable_name = item[:variable]	.to_s
 
-									format(connection, value, type)
+									if stored_data[:user_variables].has_key?(variable_name)
+										(stored_data[:user_variables][variable_name] || "")
+									elsif request_params.has_key?(variable_name)
+										value = request_params[variable_name][:value] || ""
+										type = request_params[variable_name][:type]
+
+										format(connection, value, type)
+									end
+								elsif item[:expression]
+									variable_name = item[:expression][:variable].to_s
+
+									if stored_data[:user_variables].has_key?(variable_name)
+										value = (stored_data[:user_variables][variable_name] || "")
+									elsif request_params.has_key?(variable_name)
+										value = request_params[variable_name][:value] || ""
+										type = request_params[variable_name][:type]
+
+										value = format(connection, value, type)
+									else
+										item.inspect
+									end
+
+									to_text = proc {|val| val.is_a?(Array) ? "" : val.to_s }
+
+									"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
 								end
-							elsif item[:expression]
-								variable_name = item[:expression][:variable].to_s
-
-								if stored_data[:user_variables].has_key?(variable_name)
-									value = (stored_data[:user_variables][variable_name] || "")
-								elsif request_params.has_key?(variable_name)
-									value = request_params[variable_name][:value] || ""
-									type = request_params[variable_name][:type]
-
-									value = format(connection, value, type)
-								else
-									item.inspect
-								end
-
-								to_text = proc {|val| val.is_a?(Array) ? "" : val.to_s }
-
-								"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
-							end
-						}.join
+							}.join
+						end
 
 						cols, resultset = [nil, nil]
 						
