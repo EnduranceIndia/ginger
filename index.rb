@@ -7,6 +7,7 @@ require './config'
 require './libs/page_utils'
 require './libs/database'
 require './libs/stop_evaluation'
+require './libs/ginger_parser'
 
 require 'rubygems'
 require 'sinatra'
@@ -15,9 +16,9 @@ require 'redcloth'
 base_files_directory = get_conf['base_files_directory']
 
 def parse_param_data(template_params)
-	name = strip_quotes(template_params['name'])
-	title = strip_quotes(template_params['title'])
-	type = template_params['type']
+	name = strip_quotes(template_params['name'].to_s)
+	title = strip_quotes(template_params['title'].to_s)
+	type = strip_quotes(template_params['type'].to_s)
 
 	return name, title, type
 end
@@ -28,7 +29,7 @@ def store_param_data(stored_data, template_params, params, name, title, type)
 	if params.has_key?(param_name) && params[param_name].length > 0
 		stored_data[:request_params][name] = {:value => params[param_name], :type => type}
 	else
-		if (template_params['required'] || "").downcase == 'true'
+		if (template_params['required'].to_s || "").downcase == 'true'
 			raise StopEvaluation.new(title)
 		end
 	end
@@ -56,13 +57,13 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 
 	if name == nil
 		return "[name not specified for #{chart_type.to_s} chart.]"
-	elsif xtitle == nil
+	elsif chart_type != :pie && xtitle == nil
 		return "[xtitle not specified for #{chart_type.to_s} chart.]"
-	elsif ytitle == nil
+	elsif chart_type != :pie && ytitle == nil
 		return "[ytitle not specified for #{chart_type.to_s} chart.]"
 	end
 
-	js_object_name = {:line_chart => 'LineChart', :bar_chart => 'BarChart', :pie_chart => 'PieChart'}[chart_type]
+	js_object_name = {:line => 'LineChart', :bar => 'BarChart', :pie => 'PieChart'}[chart_type]
 
 	if js_object_name == nil
 		return "[Chart type not recognized.]"
@@ -103,69 +104,6 @@ end
 def format(connection, value, type)
 	return "#{connection.escape(value)}" if type == 'string'
 	return value
-end
-
-def get_query_from_template(connection, query, request_params)
-	matchable = query
-	new_data = ""
-
-	until ((match = /<([ .\w]+) *= *::(\w+)::>/.match(matchable)) == nil)
-		post_match = match.post_match
-		pre_match = match.pre_match
-
-		pre_equal = match[1]
-		param_name = match[2]
-
-		if request_params.has_key?(param_name)
-			value = request_params[param_name][:value]
-			type = request_params[param_name][:type]
-
-			value = format(connection, value, type)
-
-			new_data += pre_match + " " + pre_equal + "=" + value
-		else
-			new_data += pre_match
-		end
-
-		matchable = post_match
-	end
-
-	return new_data + matchable
-end
-
-def get_text_template(pre_match, user_variables, request_params)
-	matchable = pre_match
-	new_data = ""
-
-	until ((match = /<([^<]*?)::(\w+)::(.*?)>/.match(matchable)) == nil)
-		post_match = match.post_match
-		pre_match = match.pre_match
-
-		pre = match[1]
-		param_name = match[2]
-		post = match[3]
-
-		puts match.inspect
-		puts request_params.inspect
-
-		new_data += pre_match
-
-		if user_variables.has_key?(param_name)
-			new_data += pre + (user_variables[param_name] ? user_variables[param_name].to_s : "") + post
-		elsif request_params.has_key?(param_name)
-			value = request_params[param_name][:value] || ""
-			type = request_params[param_name][:type]
-
-			new_data += pre + value + post
-		end
-
-		puts new_data.inspect
-		puts 
-
-		matchable = post_match
-	end
-
-	return new_data + matchable
 end
 
 get '/' do
@@ -224,187 +162,232 @@ get '/page/:page_id' do
 			@cached_time = "This page was cached #{@cached_time} ago."
 		else
 			begin
-				@page['content'] = execute_template(@page['content']) {|pre_match, template_params, query|
-					pre_match = get_text_template(pre_match, stored_data[:user_variables], stored_data[:request_params])
+				pieces = parse_ginger_doc(@page['content'])
 
-					template_params.keys.each {|key|
-						value = template_params[key]
+				pass1 = []
+				pass2 = []
 
-						if value.is_a?(String) && (match = /::(\w+)::/.match(value))
-							variable_name = match[1]
+				pieces.each_with_index {|*piece_with_index|
+					piece, index = piece_with_index
 
-							value = ""
+					if piece[:data]
+						pass2 << piece_with_index
+					else
+						pass1 << piece_with_index
+					end
+				}
 
-							if stored_data[:user_variables].has_key?(variable_name)
-								value = stored_data[:user_variables][variable_name]
-							end
+				def empty_text
+					return {:text => ''}
+				end
 
-							template_params[key] =  value
-						end
-					}
+				def text(val)
+					return {:text => val}
+				end
 
-					if template_params['display'] == 'panel'
-						pre_match + "table{float:left; margin-right:10px; margin-bottom: 10px}."
-					elsif template_params['display'] == 'panel_end'
-						pre_match + "<div style='clear: both;'></div>"
-					elsif template_params.has_key?('input')
-						if template_params['input'] == 'text'
-							if !template_params.has_key?('name')
-								pre_match + "[No name specified for input field.]"
-							elsif !template_params.has_key?('type')
-								pre_match + "[No type specified for input field.]"
-							elsif !template_params.has_key?('title')
-								pre_match + "[No title specified for input field.]"
-							end
+				processors = {}
 
+				processors[:text] = proc {|parameters| parameters }
+
+				processors[:sidebyside] = proc {|parameters|
+					if parameters[:sidebyside][:end]
+						text("<div style='clear: both;'></div>")
+					else
+						text("table{float:left; margin-right:10px; margin-bottom: 10px}.")
+					end
+				}
+
+				processors[:assign] = proc {|parameters|
+					stored_data[:user_variables][parameters[:assign][:key].to_s] = parameters[:assign][:value].to_s
+					empty_text
+				}
+
+				processors[:reference] = proc {|parameters|
+					text((stored_data[:user_variables][parameters[:reference][:key].to_s] || '').to_s)
+				}
+
+				processors[:input] = proc {|parameters|
+					template_params = parameters[:input][:arguments]
+
+					case parameters[:input][:type].to_s
+					when 'submit'
+						text("<input type=\"submit\" value=\"Query\"></input>")
+					when 'text'
+						if !template_params.has_key?('name')
+							text("[No name specified for input field.]")
+						elsif !template_params.has_key?('type')
+							text("[No type specified for input field.]")
+						elsif !template_params.has_key?('title')
+							text("[No title specified for input field.]")
+						else
 							name, title, type = parse_param_data(template_params)
 							store_param_data(stored_data, template_params, params, name, title, type)
-
-							pre_match + "#{title} <input type='textbox' name='p_#{name}'></input>"
-						elsif template_params['input'] == 'dropdown'
-							if !template_params.has_key?('name')
-								pre_match + "[No name specified for input field.]"
-							elsif !template_params.has_key?('type')
-								pre_match + "[No type specified for input field.]"
-							elsif !template_params.has_key?('title')
-								pre_match + "[No title specified for input field.]"
-							elsif !template_params.has_key?('options')
-								pre_match + "[No options have been specified for input #{template_params['name']}.]"
-							elsif !template_params.has_key?('ids')
-								pre_match + "[No ids have been specified for input #{template_params['name']}.]"
-							else
-								options = template_params['options'].split(',')
-								ids = template_params['ids'].split(',')
-
-								if options.length != ids.length
-									pre_match + "[Options and ids of input #{template_params['name']} are not of equal length.]"
-								else
-									name, title, type = parse_param_data(template_params)
-									store_param_data(stored_data, template_params, params, name, title, type)
-
-									puts stored_data.inspect
-
-									html = "<span><select name=p_#{name}><option value=''>[#{title}]</option>"
-
-									options.zip(ids).each {|option, id|
-										option = strip_quotes(option)
-										selected_state = params["p_#{name}"] == id ? "selected=true" : ""
-										html += "<option value='#{id}' #{selected_state}>#{option}</option>"
-									}
-
-									html += "</select></span>"
-
-									pre_match + html
-								end
-							end
-						elsif template_params['input'] == 'submit'
-							pre_match + "<input type=\"submit\" value=\"Query\"></input>"
+							text("#{title} <input type='textbox' name='p_#{name}'></input>")
 						end
-					elsif template_params.has_key?('store')
-						value = nil
-						error = nil
-
-						if template_params.has_key?('case')
-							if !template_params.has_key?('options')
-								pre_match + "[options have not been specified for case statement.]"
-							elsif !template_params.has_key?('values')
-								pre_match + "[values have not been specified for case statement.]"
-							end
-							
-							options = template_params['options'].split(',').collect {|val| strip_quotes(val) }
-							values = template_params['values'].split(',').collect {|val| strip_quotes(val) }
+					when 'dropdown'
+						if !template_params.has_key?('name')
+							text("[No name specified for input field.]")
+						elsif !template_params.has_key?('type')
+							text("[No type specified for input field.]")
+						elsif !template_params.has_key?('title')
+							text("[No title specified for input field.]")
+						elsif !template_params.has_key?('options')
+							text("[No options have been specified for input #{template_params['name']}.]")
+						elsif !template_params.has_key?('values')
+							text("[No values have been specified for input #{template_params['name']}.]")
+						else
+							options = template_params['options'].to_a.collect {|item| item.to_s }
+							values = template_params['values'].to_a.collect {|item| item.to_s }
 
 							if options.length != values.length
-								pre_match + "[There must be as many options as values, no more or less.]"
+								text("[Options and values of input #{template_params['name']} are not of equal length.]")
 							else
-								_case = template_params['case']
-								index = options.index(stored_data[:user_variables][_case])
+								name, title, type = parse_param_data(template_params)
+								store_param_data(stored_data, template_params, params, name, title, type)
 
-								if index == nil && stored_data[:request_params][_case] != nil
-									index = options.index(stored_data[:request_params][_case][:value])
-								end
-								
-								if index
-									value = values[index]
-								elsif template_params['default']
-									value = strip_quotes(template_params['default'])
-								else
-									error = "[Value not found.]"
-								end
+								html = "<span><select name=p_#{name}><option value=''>[#{title}]</option>"
+
+								options.zip(values).each {|option, id|
+									option = strip_quotes(option)
+									selected_state = params["p_#{name}"] == id ? "selected=true" : ""
+									html += "<option value='#{id}' #{selected_state}>#{option}</option>"
+								}
+
+								html += "</select></span>"
+
+								text(html)
 							end
+						end
+					end
+				}
+
+				processors[:case] = proc {|parameters|
+					template_params = parameters[:case][:arguments]
+
+					if !template_params.has_key?('options')
+						text("[options have not been specified for case statement.]")
+					elsif !template_params.has_key?('values')
+						text("[values have not been specified for case statement.]")
+					end
+					
+					options = template_params['options']
+					values = template_params['values']
+
+					if options.length != values.length
+						text("[There must be as many options as values, no more or less.]")
+					else
+						source = parameters[:case][:source].to_s
+						destination = parameters[:case][:destination].to_s
+
+						error = nil
+
+						index_of_value = options.index(stored_data[:user_variables][source])
+
+						if index_of_value == nil
+							index_of_value = options.index(stored_data[:request_params][source][:value])
+						end
+
+						if index_of_value != nil
+							stored_data[:user_variables][destination] = strip_quotes(values[index_of_value])
+						elsif template_params['default']
+							stored_data[:user_variables][destination] = strip_quotes(template_params['default'])
 						else
-							value = template_params['value']
+							error = text("[Value not found.]")
+						end
+
+						error || empty_text
+					end
+				}
+				
+				processors[:data] = proc {|parameters|
+					template_params = parameters[:data][:arguments] || {}
+					
+					conf = get_conf
+					datasource_name = parameters[:data][:datasource].to_s
+					datasource = conf['datasources'][datasource_name]
+					
+					error = nil
+					
+					if !datasource
+						text("[Datasource not found]")
+					else
+						connection = connect(datasource, template_params['database'])
+
+						query = parameters[:data][:query].collect {|item|
+							if item[:text]
+								item[:text]
+							elsif item[:variable]
+								variable_name = item[:variable]	.to_s
+
+								if stored_data[:user_variables].has_key?(variable_name)
+									(stored_data[:user_variables][variable_name] || "")
+								elsif request_params.has_key?(variable_name)
+									value = request_params[variable_name][:value] || ""
+									type = request_params[variable_name][:type]
+
+									format(connection, value, type)
+								end
+							elsif item[:expression]
+								variable_name = item[:expression][:variable].to_s
+
+								if stored_data[:user_variables].has_key?(variable_name)
+									value = (stored_data[:user_variables][variable_name] || "")
+								elsif request_params.has_key?(variable_name)
+									value = request_params[variable_name][:value] || ""
+									type = request_params[variable_name][:type]
+
+									value = format(connection, value, type)
+								else
+									item.inspect
+								end
+
+								to_text = proc {|val| val.is_a?(Array) ? "" : val.to_s }
+
+								"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
+							end
+						}.join
+
+						cols, resultset = [nil, nil]
+						
+						begin
+							cols, resultset = connection.query_table(query)
+						rescue Object => e
+							puts "Error running query #{query}"
+							puts "Exception message: #{e.message}"
+							puts e.backtrace
+
+							error = "[Error running query: #{query}]<br />"
+							error += "[Exception message: #{e.message}]<br />"
+							error += e.backtrace.join("<br />")
 						end
 
 						if error
-							pre_match + error
+							text(error)
+						elsif template_params.has_key?('store')
+							stored_data[:user_variables][template_params['store'].to_s] = resultset
+							empty_text
+						elsif parameters[:data][:format].to_s == 'table'
+							text(render_table(cols, resultset))
+						elsif parameters[:data][:format].to_s == 'scalar'
+							text(resultset[0][0].to_s)
+						elsif ['line', 'bar', 'pie'].include?(parameters[:data][:format].to_s)
+							text(emit_chart(parameters[:data][:format].to_s.to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i))
 						else
-							stored_data[:user_variables][template_params['store']] = value
-							pre_match
-						end
-					elsif template_params.has_key?('datasource')
-						conf = get_conf
-						datasource_name = template_params['datasource']
-						datasource = conf['datasources'][datasource_name]
-
-						error = nil
-
-						if !datasource
-							pre_match + "[Datasource not found]"
-						else
-							connection = connect(datasource, template_params['database'])
-							query = get_query_from_template(connection, query, stored_data[:request_params])
-							cols, resultset = [nil, nil]
-
-							begin
-								cols, resultset = connection.query_table(query)
-							rescue Object => e
-								puts "Error running query #{query}"
-								puts "Exception message: {e.message}"
-								puts e.backtrace
-
-								error = "[Error running query: #{query}]<br />"
-								error += "[Exception message: #{e.message}]<br />"
-								error += e.backtrace.join("<br />")
-							end
-
-							if error
-								pre_match + error
-							elsif template_params.has_key?('store')
-								stored_data[:user_variables][template_params['store']] = resultset
-								pre_match
-							elsif template_params['format'] == 'table'
-								pre_match + render_table(cols, resultset)
-							elsif template_params['format'] == 'scalar'
-								pre_match + resultset[0][0].to_s
-							elsif ['line_chart', 'bar_chart', 'pie_chart'].include?(template_params['format'])
-								pre_match + emit_chart(template_params['format'].to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i)
-							end
-						end
-					elsif template_params.has_key?('fetch')
-						value = stored_data[:user_variables][template_params['fetch']]
-
-						if value == nil
-							pre_match + "[No value found for the key '#{template_params['fetch']}']"
-						else
-							if template_params.has_key?('format') && template_params['format'] == 'table'
-								if (!template_params.has_key?('cols'))
-									pre_match + "[Tabular data cannot be specified without columns.]"
-								else
-									pre_match + render_table(template_params['cols'].split(','), value)
-								end
+							if resultset.length == 1 && resultset[0].length == 1
+								text((resultset[0][0] || "nil").to_s)
 							else
-								if value.is_a?(Array)
-									pre_match + value[0][0]
-								else
-									pre_match + value
-								end
+								text(render_table(cols, resultset))
 							end
 						end
-					else
-						pre_match
 					end
 				}
+
+				pieces.each_with_index {|piece, index|
+					result = processors[piece.keys[0]].call(piece)
+					pieces[index] = result
+				}
+
+				@page['content'] = pieces.collect {|piece| piece[:text] ? piece[:text] : piece.inspect }.join
 
 				redcloth = RedCloth.new(@page['content'])
 				redcloth.extend FormTag

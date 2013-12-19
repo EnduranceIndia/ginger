@@ -9,4 +9,4 @@ gem 'sequel'
 gem 'sequel_pg'
 gem 'parallel'
 gem 'capistrano'
-
+gem 'parslet'
