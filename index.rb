@@ -55,12 +55,12 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	matrix = matrix.clone
 	matrix.unshift cols
 
-	if name == nil
-		return "[name not specified for #{chart_type.to_s} chart.]"
-	elsif chart_type != :pie && xtitle == nil
-		return "[xtitle not specified for #{chart_type.to_s} chart.]"
-	elsif chart_type != :pie && ytitle == nil
-		return "[ytitle not specified for #{chart_type.to_s} chart.]"
+	if chart_type != :pie
+		if xtitle == nil
+			return "[xtitle not specified for #{chart_type.to_s} chart.]"
+		elsif ytitle == nil
+			return "[ytitle not specified for #{chart_type.to_s} chart.]"
+		end
 	end
 
 	js_object_name = {:line => 'LineChart', :bar => 'BarChart', :pie => 'PieChart'}[chart_type]
@@ -87,6 +87,7 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	width_clause = width != nil ? "width: #{width}; " : ""
 	height_clause = height != nil ? "height: #{height}; " : ""
 
+	name = Random.srand.to_s
 
 	return "<script type=\"text/javascript\">
       google.load(\"visualization\", \"1\", {packages:[\"corechart\"]});
