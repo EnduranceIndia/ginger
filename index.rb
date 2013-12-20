@@ -19,14 +19,8 @@ base_files_directory = get_conf['base_files_directory']
 def template_to_html(content, params)
 	new_content = nil
 
-	begin
-		GingerParser.new().data.parse("[:localhost select category, count(*) count from invoices <where category=::category::> group by category :]")
-		parse_tree = parse_ginger_doc(content)
-		new_content = HTMLGenerator.new(params).generate(parse_tree)
-	rescue Parslet::ParseFailed => failure
-		puts failure.cause.ascii_tree
-		raise failure
-	end
+	parse_tree = parse_ginger_doc(content)
+	new_content = HTMLGenerator.new(params).generate(parse_tree)
 
 	redcloth = RedCloth.new(new_content)
 	redcloth.extend FormTag

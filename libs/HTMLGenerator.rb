@@ -14,6 +14,23 @@ class HTMLGenerator
 		return {:text => val}
 	end
 
+	def process_text_expression(parameters)
+		key = parameters[:text_expression][:variable].to_s
+		value = nil
+
+		if stored_data[:request_params][key]
+			value = stored_data[:request_params][key][:value]
+		else
+			value = stored_data[:user_variables][key]
+		end
+
+		if value != nil
+			return text(to_text(parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s))
+		else
+			return empty_text
+		end
+	end
+
 	def process_text(parameters)
 		parameters
 	end
@@ -27,7 +44,6 @@ class HTMLGenerator
 	end
 
 	def process_assign(parameters)
-		puts parameters.inspect
 		stored_data[:user_variables][parameters[:assign][:key].to_s] = parameters[:assign][:value].to_s
 		empty_text
 	end
@@ -129,6 +145,10 @@ class HTMLGenerator
 		end
 	end
 
+	def to_text(val)
+		val.is_a?(Array) ? "" : val.to_s
+	end
+
 	def process_data(parameters)
 		request_params = stored_data[:request_params]
 		template_params = parameters[:data][:arguments] || {}
@@ -157,7 +177,6 @@ class HTMLGenerator
 			if !query.is_a?(Array)
 				query = query.to_s
 			else
-				to_text = proc {|val| val.is_a?(Array) ? "" : val.to_s }
 				query = parameters[:data][:query].collect {|item|
 					if item[:text]
 						item[:text]
@@ -177,13 +196,13 @@ class HTMLGenerator
 
 						if stored_data[:user_variables].has_key?(variable_name)
 							value = (stored_data[:user_variables][variable_name] || "")
-							"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
+							"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
 						elsif request_params.has_key?(variable_name)
 							value = request_params[variable_name][:value] || ""
 							type = request_params[variable_name][:type]
 
 							value = format(connection, value, type)
-							"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
+							"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
 						else
 							""
 						end
