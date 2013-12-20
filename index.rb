@@ -16,9 +16,17 @@ require 'redcloth'
 
 base_files_directory = get_conf['base_files_directory']
 
-def template_to_html(content)
-	parse_tree = parse_ginger_doc(content)
-	new_content = HTMLGenerator.new.generate(parse_tree)
+def template_to_html(content, params)
+	new_content = nil
+
+	begin
+		GingerParser.new().data.parse("[:localhost select category, count(*) count from invoices <where category=::category::> group by category :]")
+		parse_tree = parse_ginger_doc(content)
+		new_content = HTMLGenerator.new(params).generate(parse_tree)
+	rescue Parslet::ParseFailed => failure
+		puts failure.cause.ascii_tree
+		raise failure
+	end
 
 	redcloth = RedCloth.new(new_content)
 	redcloth.extend FormTag
@@ -127,7 +135,7 @@ get '/explore/:datasource' do
 	template = "[:#{params['datasource']} show tables; :]"
 
 	@page = {}
-	@page['content'] = template_to_html(template)
+	@page['content'] = template_to_html(template, params)
 
 	haml :show_page
 end
@@ -136,7 +144,7 @@ get '/explore/:datasource/:table' do
 	template = "[:#{params['datasource']} desc #{params['table']}; :]"
 
 	@page = {}
-	@page['content'] = template_to_html(template)
+	@page['content'] = template_to_html(template, params)
 
 	haml :show_page
 end
@@ -192,7 +200,7 @@ get '/page/:page_id' do
 			@cached_time = "This page was cached #{@cached_time} ago."
 		else
 			begin
-				@page['content'] = template_to_html(@page['content'])
+				@page['content'] = template_to_html(@page['content'], params)
 
 				if params['cache'] == 'true'
 					write_cached_page(@page_id, query_params, @page['content'])

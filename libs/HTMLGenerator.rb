@@ -1,8 +1,9 @@
 class HTMLGenerator
-	attr_accessor :stored_data
+	attr_accessor :stored_data, :params
 
-	def initialize
+	def initialize(params)
 		@stored_data = {:user_variables => {}, :request_params => {}}
+		@params = params
 	end
 
 	def empty_text
@@ -127,8 +128,9 @@ class HTMLGenerator
 			error || empty_text
 		end
 	end
-				
+
 	def process_data(parameters)
+		request_params = stored_data[:request_params]
 		template_params = parameters[:data][:arguments] || {}
 		
 		conf = get_conf
@@ -155,6 +157,7 @@ class HTMLGenerator
 			if !query.is_a?(Array)
 				query = query.to_s
 			else
+				to_text = proc {|val| val.is_a?(Array) ? "" : val.to_s }
 				query = parameters[:data][:query].collect {|item|
 					if item[:text]
 						item[:text]
@@ -174,18 +177,16 @@ class HTMLGenerator
 
 						if stored_data[:user_variables].has_key?(variable_name)
 							value = (stored_data[:user_variables][variable_name] || "")
+							"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
 						elsif request_params.has_key?(variable_name)
 							value = request_params[variable_name][:value] || ""
 							type = request_params[variable_name][:type]
 
 							value = format(connection, value, type)
+							"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
 						else
-							item.inspect
+							""
 						end
-
-						to_text = proc {|val| val.is_a?(Array) ? "" : val.to_s }
-
-						"#{to_text.call(item[:expression][:pre_text])}#{value}#{to_text.call(item[:expression][:post_text])}"
 					end
 				}.join
 			end
