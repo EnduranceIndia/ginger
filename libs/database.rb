@@ -1,5 +1,7 @@
 require 'rubygems'
 require 'sequel'
+require 'pg'
+require 'mysql'
 
 class DatabaseConnection
 	def initialize(adapter, datasource)

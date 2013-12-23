@@ -1,3 +1,6 @@
+require './libs/ExecutionContext.rb'
+require 'erb'
+
 class HTMLGenerator
 	attr_accessor :stored_data, :params
 
@@ -31,8 +34,19 @@ class HTMLGenerator
 		end
 	end
 
+	def parse_redcloth(content)
+		redcloth = RedCloth.new(content)
+		redcloth.extend FormTag
+		redcloth.to_html(content)
+	end
+
+	def process_erb(parameters)
+		erb = ERB.new((parameters[:erb] || nil).to_s, nil, '%')
+		text(erb.result(ExecutionContext.new(@stored_data)._binding))
+	end
+
 	def process_text(parameters)
-		parameters
+		{text: parse_redcloth(parameters[:text])}
 	end
 
 	def process_sidebyside(parameters)
@@ -259,12 +273,20 @@ class HTMLGenerator
 			end
 		}
 
-		parse_tree.each_with_index {|piece, index|
+		pass1.each {|piece, index|
 			processor = 'process_' + piece.keys[0].to_s
 			result = self.send(processor, piece)
 			parse_tree[index] = result
 		}
 
-		return parse_tree.collect {|piece| piece[:text] ? piece[:text] : piece.inspect }.join
+		Parallel.map(pass2, :in_processes => 10) {|piece, index|
+			processor = 'process_' + piece.keys[0].to_s
+			[self.send(processor, piece), index]
+		}.each {|result, index|
+			parse_tree[index] = result
+		}
+
+		result = parse_tree.collect {|piece| piece[:text] ? piece[:text] : piece.inspect }.join
+		return result
 	end
 end

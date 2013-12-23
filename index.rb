@@ -9,6 +9,7 @@ require './libs/database'
 require './libs/stop_evaluation'
 require './libs/ginger_parser'
 require './libs/HTMLGenerator.rb'
+require './libs/common_utils.rb'
 
 require 'rubygems'
 require 'sinatra'
@@ -17,15 +18,23 @@ require 'redcloth'
 base_files_directory = get_conf['base_files_directory']
 
 def template_to_html(content, params)
-	new_content = nil
+	convertors = []
 
-	parse_tree = parse_ginger_doc(content)
-	new_content = HTMLGenerator.new(params).generate(parse_tree)
+	convertors << proc {|content| parse_ginger_doc(content) }
+	convertors << proc {|content| HTMLGenerator.new(params).generate(content) }
+	# convertors << proc {|content|
+	# 	redcloth = RedCloth.new(content)
+	# 	redcloth.extend FormTag
+	# 	redcloth.to_html(content)
+	# }
 
-	redcloth = RedCloth.new(new_content)
-	redcloth.extend FormTag
+	new_content = content
 
-	redcloth.to_html(new_content )
+	convertors.each {|convertor|
+		new_content = convertor.call(new_content)
+	}
+
+	return new_content
 end
 
 def parse_param_data(template_params)
@@ -62,62 +71,6 @@ def remove_cache_request(url, cache_switch)
 	clean_url = clean_url.gsub(/\?\s*$/, "")
 
 	return clean_url
-end
-
-def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, width)
-	matrix = matrix.clone
-	matrix.unshift cols
-
-	if chart_type != :pie
-		if xtitle == nil
-			return "[xtitle not specified for #{chart_type.to_s} chart.]"
-		elsif ytitle == nil
-			return "[ytitle not specified for #{chart_type.to_s} chart.]"
-		end
-	end
-
-	js_object_name = {:line => 'LineChart', :bar => 'BarChart', :pie => 'PieChart'}[chart_type]
-
-	if js_object_name == nil
-		return "[Chart type not recognized.]"
-	end
-
-	formatted_data = "[" + matrix.collect {|row|
-		"[" + row.collect {|val|
-			val.is_a?(String) ? "\"#{val}\"" : val.to_s
-		}.join(',') + "]"
-	}.join(',') + "]"
-
-	options = "var options = {"
-	options += " title: #{title}," if title
-	options += " height: #{height}," if height
-	options += " width: #{width}," if width
-
-	options += "colors: ['#D3D3D3'], vAxis: {title: #{ytitle}}, hAxis: {title: #{xtitle}}" if [:bar_chart, :line_chart].include?(chart_type)
-
-	options += "};"
-
-	width_clause = width != nil ? "width: #{width}; " : ""
-	height_clause = height != nil ? "height: #{height}; " : ""
-
-	name = Random.srand.to_s
-
-	return "<script type=\"text/javascript\">
-      google.load(\"visualization\", \"1\", {packages:[\"corechart\"]});
-      google.setOnLoadCallback(drawChart);
-      function drawChart() {
-        var data = google.visualization.arrayToDataTable(#{formatted_data});
-
-        #{options}
-
-        var chart = new google.visualization.#{js_object_name}(document.getElementById('#{name}'));
-        chart.draw(data, options);
-      } </script> <div id=\"#{name}\" style=\"#{width_clause} #{height_clause}\"></div>"
-end
-
-def format(connection, value, type)
-	return "#{connection.escape(value)}" if type == 'string'
-	return value
 end
 
 get '/' do

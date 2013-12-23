@@ -29,7 +29,7 @@ class GingerParser < Parslet::Parser
 
 	rule(:data) { str('[:') >> (unquoted_word.as(:datasource) | (str('::') >> unquoted_word.as(:datasource_variable) >> str('::'))) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> query.as(:query) >> whitespace >> str(':]') }
 
-	rule(:non_open_symbols) { match['^<\['] | (str('[') | text_expression.absent? >> str('<')) >> str(':').absent? }
+	rule(:non_open_symbols) { match['^<\['] | (str('[:').absent? >> str('[')) | (text_expression.absent? >> str('<') >> str(':').absent? >> str('%').absent?) }
 	rule(:text) { non_open_symbols.repeat(1) }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }
@@ -37,8 +37,9 @@ class GingerParser < Parslet::Parser
 	rule(:sidebyside) { open_bracket >> str('sidebyside') >> str(':end').maybe.as(:end) >> whitespace >> close_bracket }
 
 	rule(:text_expression) { str('<:').absent? >> str('<') >> match['^:<\['].repeat.as(:pre_text) >> str('::') >> unquoted_word.as(:variable) >> str('::') >> match['^:>\]'].repeat.as(:post_text) >> str('>') }
+	rule(:erb) { str('<%') >> str('=').maybe >> (str('%>').absent? >> any).repeat >> str('%>') }
 
-	rule(:expression) { text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
+	rule(:expression) { erb.as(:erb) | text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
 
 	rule(:document) { ( text.as(:text) | expression).repeat }
 
