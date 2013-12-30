@@ -28,16 +28,10 @@ class HTMLGenerator
 		end
 
 		if value != nil
-			return text(to_text(parse_redcloth(parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s)))
+			return text((parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s))
 		else
 			return empty_text
 		end
-	end
-
-	def parse_redcloth(content)
-		redcloth = RedCloth.new(content)
-		redcloth.extend FormTag
-		redcloth.to_html(content)
 	end
 
 	def process_erb(parameters)
@@ -46,14 +40,15 @@ class HTMLGenerator
 	end
 
 	def process_text(parameters)
-		{text: parse_redcloth(parameters[:text])}
+		parameters
 	end
 
 	def process_sidebyside(parameters)
 		if parameters[:sidebyside][:end]
 			text("<div style='clear: both;'></div>")
 		else
-			text("table{float:left; margin-right:10px; margin-bottom: 10px}.")
+			@markdown_table_class_added = true
+			text("table(table table-compact){float:left; margin-right:10px; margin-bottom: 10px}.")
 		end
 	end
 
@@ -164,6 +159,9 @@ class HTMLGenerator
 	end
 
 	def process_data(parameters)
+		markdown_table_class_added = @markdown_table_class_added
+		@markdown_table_class_added = nil
+
 		request_params = stored_data[:request_params]
 		template_params = parameters[:data][:arguments] || {}
 		
@@ -244,7 +242,7 @@ class HTMLGenerator
 				stored_data[:user_variables][template_params['store'].to_s] = resultset
 				empty_text
 			elsif parameters[:data][:format].to_s == 'table'
-				text(render_table(cols, resultset))
+				text(render_table(cols, resultset, markdown_table_class_added))
 			elsif parameters[:data][:format].to_s == 'scalar'
 				text(resultset[0][0].to_s)
 			elsif ['line', 'bar', 'pie'].include?(parameters[:data][:format].to_s)
@@ -253,7 +251,7 @@ class HTMLGenerator
 				if resultset.length == 1 && resultset[0].length == 1
 					text((resultset[0][0] || "nil").to_s)
 				else
-					text(render_table(cols, resultset))
+					text(render_table(cols, resultset, markdown_table_class_added))
 				end
 			end
 		end

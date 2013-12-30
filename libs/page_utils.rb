@@ -92,85 +92,21 @@ module FormTag
 	end
 end
 
-class Job
-	attr_reader :index
-
-	def initialize(index, piece, procedure)
-		@index = index
-		@pre_match = piece[:pre_match]
-		@procedure = procedure
-		@params = piece[:params]
-		@query = piece[:query]
-	end
-
-	def execute
-		@procedure.call(@pre_match, @params, @query).to_s
-	end
-end
-
-def execute_template(data, &procedure)
-	matchable = data
-
-	pieces = []
-
-	until ((match = /<~.+?(?:!!.*?)?~>/.match(matchable)) == nil)
-		post_match = match.post_match
-		pre_match = match.pre_match
-
-		match = /<~(.+?)(?:!!(.*?))?~>/.match(match[0])
-
-		params = match[1]
-		query = match[2]
-
-		pieces << {:pre_match => pre_match, :params => parse_params(params), :query => query}
-
-		matchable = post_match
-	end
-
-	jobs = []
-
-	pieces.each_with_index {|piece, index|
-		if piece[:params].has_key?('datasource')
-			jobs << Job.new(index, piece, procedure)
-		else
-			piece[:output] = procedure.call(piece[:pre_match], piece[:params], piece[:query])
-		end
-	}
-
-	Parallel.map(jobs, :in_processes => 30) {|job|
-		[job.index, job.execute]
-	}.each {|index, output| pieces[index][:output] = output }
-
-	matchable = procedure.call(matchable, {}, "")
-	pieces.collect {|piece| piece[:output] }.join + matchable
-end
-
 def format_column(col)
 	return ("%.2f" % col).to_s if col.is_a? BigDecimal
 	return col.to_s
 end
 
-def render_table(cols, result)
-	view = "<table class='table table-condensed'>"
-	view += "<tr>"
+def render_table(cols, result, markdown_table_class_added)
+	view = ""
 
-	cols.each {|col|
-		view += "<th>" + col.to_s + "</th>"
-	}
+	view += "table(table table-compact).\n" if !markdown_table_class_added
 
-	view += "</tr>"
+	view += "|_." + cols.collect {|col| col.to_s }.join("|_.") + "|\n"
 
-	result.each {|row|
-		view += "<tr>"
-
-		row.each {|col|
-			view += "<td>" + format_column(col) + "</td>"
-		}
-
-		view += "</tr>"
-	}
-
-	view += "</table>"
+	view += result.collect {|row|
+		"|" + row.collect {|col| format_column(col) }.join("|") + "|"
+	}.join("\n")
 
 	return view
 end

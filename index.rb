@@ -20,13 +20,15 @@ base_files_directory = get_conf['base_files_directory']
 def template_to_html(content, params)
 	convertors = []
 
-	convertors << proc {|content| parse_ginger_doc(content) }
-	convertors << proc {|content| HTMLGenerator.new(params).generate(content) }
-	# convertors << proc {|content|
-	# 	redcloth = RedCloth.new(content)
-	# 	redcloth.extend FormTag
-	# 	redcloth.to_html(content)
-	# }
+	convertors = [
+		proc {|content| parse_ginger_doc(content) },
+		proc {|content| HTMLGenerator.new(params).generate(content) },
+		proc {|content|
+			redcloth = RedCloth.new(content)
+			redcloth.extend FormTag
+			redcloth.to_html(content)
+		}
+	]
 
 	new_content = content
 
