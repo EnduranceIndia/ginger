@@ -48,7 +48,7 @@ class HTMLGenerator
 			text("<div style='clear: both;'></div>")
 		else
 			@markdown_table_class_added = true
-			text("table(table table-compact){float:left; margin-right:10px; margin-bottom: 10px}.")
+			text("table{float:left; margin-right:10px; margin-bottom: 10px}.")
 		end
 	end
 
