@@ -8,6 +8,8 @@ def get_edit_link(url)
 end
 
 def strip_quotes(val)
+	val = val.to_s if !val.is_a?(String)
+
 	val = val.strip
 
 	if val[0] == '"' && val[val.length - 1] == '"'
