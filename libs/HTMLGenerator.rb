@@ -28,7 +28,7 @@ class HTMLGenerator
 		end
 
 		if value != nil
-			return text(to_text(parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s))
+			return text(to_text(parse_redcloth(parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s)))
 		else
 			return empty_text
 		end
