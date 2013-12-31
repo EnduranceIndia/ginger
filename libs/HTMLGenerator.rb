@@ -1,4 +1,5 @@
 require './libs/ExecutionContext.rb'
+require './libs/page_utils.rb'
 require 'erb'
 
 class HTMLGenerator
@@ -28,6 +29,7 @@ class HTMLGenerator
 		end
 
 		if value != nil
+			value = strip_quotes((value || "").to_s)
 			return text((parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s))
 		else
 			return empty_text
@@ -58,7 +60,7 @@ class HTMLGenerator
 	end
 
 	def process_reference(parameters)
-		text((stored_data[:user_variables][parameters[:reference][:key].to_s] || '').to_s)
+		text(strip_quotes(stored_data[:user_variables][parameters[:reference][:key].to_s] || '').to_s)
 	end
 
 	def process_input(parameters)
