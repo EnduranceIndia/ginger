@@ -21,7 +21,7 @@ def template_to_html(content, params)
 	convertors = []
 
 	convertors = [
-		proc {|content| parse_ginger_doc(content) },
+		proc {|content| r = parse_ginger_doc(content); puts r; r },
 		proc {|content| HTMLGenerator.new(params).generate(content) },
 		proc {|content|
 			redcloth = RedCloth.new(content)
