@@ -260,11 +260,11 @@ class HTMLGenerator
 								value = stored_data[:user_variables][variable_name]
 
 								if value == nil && request_params[variable_name] != nil
-									request_params[variable_name][:value]
+									value = request_params[variable_name][:value]
 								end
 
 								if value != nil
-									value = escape(connection, value) if escaped
+									value = "'" + strip_quotes(escape(connection, value)) + "'" if escaped
 									"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
 								else
 									""
