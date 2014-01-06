@@ -28,11 +28,13 @@ class GingerParser < Parslet::Parser
 	rule(:escaped_query_variable) { str('::') >> unquoted_word.as(:escaped_variable) >> str('::') }
 	rule(:query_variable) { unescaped_query_variable | escaped_query_variable }
 	rule(:check_query_variable_exists) { unquoted_word.as(:check_query_variable_exists) >> str('?') }
+	rule(:check_variable_value) { unquoted_word.as(:check_variable_key) >> str('=') >> string.as(:check_variable_value) >> str('?') }
+	rule(:variable_check) { check_query_variable_exists | check_variable_value }
 	rule(:query_expression) { str('{:') >> check_query_variable_exists.maybe >> (query_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> query_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
 	rule(:query_text_fragment) { (query_expression.absent? >> query_variable.absent? >> str(':]').absent? >> any).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
 	rule(:datasource_variable) { str('{:') >> unquoted_word.as(:datasource_variable) >> str(':}') }
-	rule(:data) { str('[:') >> (unquoted_word.as(:check_query_variable_exists) >> str('?')).maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> query.as(:query) >> whitespace >> str(':]') }
+	rule(:data) { str('[:') >> (variable_check).maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> query.as(:query) >> whitespace >> str(':]') }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }
 
