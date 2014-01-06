@@ -19,12 +19,8 @@ class HTMLGenerator
 	end
 
 	def process_text_expression(parameters)
-		if parameters[:text_expression][:check_query_variable_exists] != nil
-			key = parameters[:text_expression][:check_query_variable_exists].to_s
-
-			if stored_data[:request_params][key] == nil
-				return text("")
-			end
+		if !variable_check_passed(parameters[:text_expression])
+			return text("")
 		end
 
 		key = parameters[:text_expression][:variable]
@@ -185,7 +181,7 @@ class HTMLGenerator
 			query_variable_to_check = parameters[:check_query_variable_exists]
 			query_variable_to_check = query_variable_to_check.to_s if query_variable_to_check != nil
 
-			check_passed = false if stored_data[:request_params][query_variable_to_check] == nil
+			check_passed = false if stored_data[:request_params][query_variable_to_check] == nil && stored_data[:user_variables][query_variable_to_check] == nil
 		elsif variable_value_check
 			checked_variable_key = parameters[:check_variable_key].to_s
 			checked_variable_value = parameters[:check_variable_value]

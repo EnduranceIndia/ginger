@@ -30,7 +30,7 @@ class GingerParser < Parslet::Parser
 	rule(:check_query_variable_exists) { unquoted_word.as(:check_query_variable_exists) >> str('?') }
 	rule(:check_variable_value) { unquoted_word.as(:check_variable_key) >> str('=') >> string.as(:check_variable_value) >> str('?') }
 	rule(:variable_check) { check_query_variable_exists | check_variable_value }
-	rule(:query_expression) { str('{:') >> check_query_variable_exists.maybe >> (query_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> query_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
+	rule(:query_expression) { str('{:') >> variable_check.maybe >> (query_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> query_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
 	rule(:query_text_fragment) { (query_expression.absent? >> query_variable.absent? >> str(':]').absent? >> any).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
 	rule(:datasource_variable) { str('{:') >> unquoted_word.as(:datasource_variable) >> str(':}') }
@@ -44,7 +44,7 @@ class GingerParser < Parslet::Parser
 
 	rule(:text_variable) { str(':') >> unquoted_word.as(:variable) >> str(':') }
 	rule(:check_text_variable_exists) { check_query_variable_exists }
-	rule(:text_expression) { str('{:') >> check_query_variable_exists.maybe >> (text_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> text_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
+	rule(:text_expression) { str('{:') >> variable_check.maybe >> (text_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> text_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
 	rule(:erb) { str('<%') >> str('=').maybe >> (str('%>').absent? >> any).repeat >> str('%>') }
 
 	rule(:expression) { erb.as(:erb) | text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
