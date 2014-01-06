@@ -19,7 +19,22 @@ class HTMLGenerator
 	end
 
 	def process_text_expression(parameters)
-		key = parameters[:text_expression][:variable].to_s
+		if parameters[:text_expression][:check_query_variable_exists] != nil
+			key = parameters[:text_expression][:check_query_variable_exists].to_s
+
+			if stored_data[:request_params][key] == nil
+				return text("")
+			end
+		end
+
+		key = parameters[:text_expression][:variable]
+
+		if key == nil
+			returnable_data = to_text(parameters[:text_expression][:pre_text]) + to_text(parameters[:text_expression][:post_text])
+			return text(returnable_data)
+		end
+
+		key = key.to_s
 		value = nil
 
 		if stored_data[:request_params][key]
@@ -29,8 +44,9 @@ class HTMLGenerator
 		end
 
 		if value != nil
-			value = strip_quotes((value || "").to_s)
-			return text((parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s))
+			value = (value || "").to_s
+
+			return text(to_text(parameters[:text_expression][:pre_text].to_s) + value + to_text(parameters[:text_expression][:post_text].to_s))
 		else
 			return empty_text
 		end
@@ -161,6 +177,14 @@ class HTMLGenerator
 	end
 
 	def process_data(parameters)
+		if parameters[:data][:check_query_variable_exists] != nil
+			key = parameters[:data][:check_query_variable_exists].to_s
+
+			if stored_data[:request_params][key] == nil
+				return text("")
+			end
+		end
+
 		markdown_table_class_added = @markdown_table_class_added
 		@markdown_table_class_added = nil
 
@@ -201,24 +225,52 @@ class HTMLGenerator
 							(stored_data[:user_variables][variable_name] || "")
 						elsif request_params.has_key?(variable_name)
 							value = request_params[variable_name][:value] || ""
-							type = request_params[variable_name][:type]
-
-							format(connection, value, type)
 						end
-					elsif item[:expression]
-						variable_name = item[:expression][:variable].to_s
+					elsif item[:escaped_variable]
+						variable_name = item[:escaped_variable].to_s
 
 						if stored_data[:user_variables].has_key?(variable_name)
-							value = (stored_data[:user_variables][variable_name] || "")
-							"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
+							(stored_data[:user_variables][variable_name] || "")
 						elsif request_params.has_key?(variable_name)
 							value = request_params[variable_name][:value] || ""
-							type = request_params[variable_name][:type]
+							escape(connection, value)
+						end
+					elsif item[:expression]
+						query_variable_to_check = item[:expression][:check_query_variable_exists]
+						query_variable_to_check = query_variable_to_check.to_s if query_variable_to_check != nil
+						query_variable_check_passed = true
 
-							value = format(connection, value, type)
-							"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
-						else
-							""
+						if query_variable_to_check
+							query_variable_check_passed = false if query_variable_to_check && stored_data[:request_params][query_variable_to_check] == nil
+						end
+
+						if query_variable_check_passed
+							variable_name = nil
+							escaped = false
+
+							variable_name = item[:expression][:variable].to_s if item[:expression][:variable]
+
+							if item[:expression][:escaped_variable]
+								variable_name = item[:expression][:escaped_variable].to_s
+								escaped = true
+							end
+							
+							if variable_name
+								if stored_data[:user_variables].has_key?(variable_name)
+									value = (stored_data[:user_variables][variable_name] || "")
+									"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
+								elsif request_params.has_key?(variable_name)
+									value = request_params[variable_name][:value] || ""
+									type = request_params[variable_name][:type]
+
+									value = escape(connection, value) if escaped
+									"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
+								else
+									""
+								end
+							else
+								"#{to_text(item[:expression][:pre_text])}"
+							end
 						end
 					end
 				}.join

@@ -31,6 +31,8 @@
                   %a{:href=>"#{add_cache_request(request.url)}"}Cache
                 %li
                   %a{:href=>"#{get_edit_link(request.url)}"}Edit
+            %li
+              %a{:href=>"/help"}Help
 
     - if @cached_time
       %div{:class=>'alert alert-warning'}

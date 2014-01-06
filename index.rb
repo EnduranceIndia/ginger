@@ -21,7 +21,7 @@ def template_to_html(content, params)
 	convertors = []
 
 	convertors = [
-		proc {|content| r = parse_ginger_doc(content); puts r; r },
+		proc {|content| parse_ginger_doc(content) },
 		proc {|content| HTMLGenerator.new(params).generate(content) },
 		proc {|content|
 			redcloth = RedCloth.new(content)
@@ -117,7 +117,6 @@ get '/page/:page_id' do
 		}
 	}
 
-
 	@page_id = params[:page_id]
 
 	if page_exists(@page_id)
@@ -188,4 +187,119 @@ post '/page/:page_id' do
 	write_page(page_id, content)
 
 	redirect to("/page/#{page_id}")
+end
+
+get '/help' do
+	help_text = <<-END
+h2. Variables
+
+<pre>
+<:var:>
+Displays the value of var.
+</pre>
+
+h2. Case
+
+<pre>
+<: var=b :>
+
+<:case:var:var2 (options=a,b,c values=1,2,3)
+When var is a, var2 is set to 1; when var is b, var2 is set to 2, etc. The name var can may refer to either a variable or a form parameter. If a variable and a form parameter exist by the same name, the variable is given preference.
+
+<:var2:>
+Display the value of var2, which would be 2
+
+</pre>
+
+h2. Tabular data
+
+<pre>
+[:peopledata select * from people :]
+This is how you can query a data source, and have it displayed in tabular format.
+
+[:peopledata select count(*) from people :]
+Since the result is scalar, it will be displayed as simple text without any table markup.
+
+To explicitly specify the format:
+[:peopledata:scalar select count(*) from people :]
+
+OR
+
+[:peopledata:table select count(*) from people :]
+
+[:peopledata select * from people {: where city='::city::' :}]
+The where clause will be added only if the city variable exists.
+The value of city will be escaped.
+
+The where clauses will be added if city exists.
+[:peopledata select * from people {:city? where 1=2 :}]
+</pre>
+
+h2. Graphs
+
+<pre>
+[:peopledata:pie select city, count(*) from people group by city :]
+The result set would look something like this:
+Mumbai, 10
+Delhi, 20
+Bangalore, 30
+In each row, the first column contains the title, and the second column contains corresponding value.
+
+[:peopledata:bar (xtitle='Some title' ytitle='Some other title') select city, count(*) from people group by city :]
+Bar and line charts are similar. xtitle and ytitle parameters may be specified.
+</pre>
+
+h2. Forms
+
+<pre>
+<:input:dropdown (name=country options=US,India,China values=us,india,cn:>
+
+<:input:text (name=city) :>
+
+<:input:submit:>
+Displays the submit button
+</pre>
+
+h2. Text expressions
+
+<pre>
+{: display this if :city: is specified }
+Displays "display this if mumbai is specified" assuming that either a variable or form parameter named city exists, and it's value is "mumbai".
+
+{:city? display this if a city is specified }
+Displays "display this if a city is specified" if a form parameter named city exists.
+</pre>
+
+h2. Panel formatting for tables
+
+<pre>
+On the line before each table, put the following tag:
+<:sidebyside:>
+
+After all the side-by-side tables, put this tag:
+<:sidebyside:end>
+</pre>
+
+h2. ERB notes
+
+<pre>
+class ExecutionContext
+
+what should work inline in pages
+
+	query = 'select country, count(*) count from orders group by country'
+	ds['sdhbll'].query(query).ds['mdhbll'].query()
+
+	collect('select country, count(*) count from orders group by country').from('sdhbll', 'mdhbll', 'bhbll').display(:pie)
+	query = 'select country, count(*) count from orders group by country'
+	q('sdhbll', query).q('mdhbll', query).q('bhbll', query).display(:pie)
+end
+</pre>
+END
+
+	@page = {
+		'content' => RedCloth.new(help_text).to_html
+	}
+
+	haml :show_page
 end

@@ -24,12 +24,15 @@ class GingerParser < Parslet::Parser
 
 	rule(:arguments) { str('(') >> (whitespace >> unquoted_word.as(:key) >> whitespace >> str('=') >> whitespace >> (sequence | string).as(:value)).repeat >> str(')') }
 
-	rule(:query_variable) { str('::') >> unquoted_word.as(:variable) >> str('::') }
-	rule(:query_expression) { str('<') >> (query_variable.absent? >> any).repeat.as(:pre_text) >> query_variable >> match['^>'].repeat.as(:post_text) >> str('>') }
+	rule(:unescaped_query_variable) { str(':') >> unquoted_word.as(:variable) >> str(':') }
+	rule(:escaped_query_variable) { str('::') >> unquoted_word.as(:escaped_variable) >> str('::') }
+	rule(:query_variable) { unescaped_query_variable | escaped_query_variable }
+	rule(:check_query_variable_exists) { unquoted_word.as(:check_query_variable_exists) >> str('?') }
+	rule(:query_expression) { str('{:') >> check_query_variable_exists.maybe >> (query_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> query_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
 	rule(:query_text_fragment) { (query_expression.absent? >> query_variable.absent? >> str(':]').absent? >> any).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
-	rule(:datasource_variable) { str('::') >> unquoted_word.as(:datasource_variable) >> str('::') }
-	rule(:data) { str('[:') >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> query.as(:query) >> whitespace >> str(':]') }
+	rule(:datasource_variable) { str('{:') >> unquoted_word.as(:datasource_variable) >> str(':}') }
+	rule(:data) { str('[:') >> (unquoted_word.as(:check_query_variable_exists) >> str('?')).maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> query.as(:query) >> whitespace >> str(':]') }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }
 
@@ -37,7 +40,9 @@ class GingerParser < Parslet::Parser
 
 	rule(:sidebyside) { open_bracket >> str('sidebyside') >> str(':end').maybe.as(:end) >> whitespace >> close_bracket }
 
-	rule(:text_expression) { str('<:').absent? >> str('<') >> match['^:<\['].repeat.as(:pre_text) >> str('::') >> unquoted_word.as(:variable) >> str('::') >> match['^:>\]'].repeat.as(:post_text) >> str('>') }
+	rule(:text_variable) { str(':') >> unquoted_word.as(:variable) >> str(':') }
+	rule(:check_text_variable_exists) { check_query_variable_exists }
+	rule(:text_expression) { str('{:') >> check_query_variable_exists.maybe >> (text_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> text_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
 	rule(:erb) { str('<%') >> str('=').maybe >> (str('%>').absent? >> any).repeat >> str('%>') }
 
 	rule(:expression) { erb.as(:erb) | text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
