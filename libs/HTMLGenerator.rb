@@ -235,7 +235,7 @@ class HTMLGenerator
 							value = request_params[variable_name][:value] || ""
 						end
 
-						escape(connection, value)
+						escape(connection, strip_quotes(value))
 					elsif item[:expression]
 						query_variable_to_check = item[:expression][:check_query_variable_exists]
 						query_variable_to_check = query_variable_to_check.to_s if query_variable_to_check != nil
@@ -264,7 +264,7 @@ class HTMLGenerator
 								end
 
 								if value != nil
-									value = "'" + strip_quotes(escape(connection, value)) + "'" if escaped
+									value = "'" + escape(connection, strip_quotes(value)) + "'" if escaped
 									"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
 								else
 									""
