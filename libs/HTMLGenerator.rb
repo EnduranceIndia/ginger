@@ -222,19 +222,20 @@ class HTMLGenerator
 						variable_name = item[:variable]	.to_s
 
 						if stored_data[:user_variables].has_key?(variable_name)
-							(stored_data[:user_variables][variable_name] || "")
+							strip_quotes(stored_data[:user_variables][variable_name] || "")
 						elsif request_params.has_key?(variable_name)
-							value = request_params[variable_name][:value] || ""
+							strip_quotes(request_params[variable_name][:value] || "")
 						end
 					elsif item[:escaped_variable]
 						variable_name = item[:escaped_variable].to_s
 
 						if stored_data[:user_variables].has_key?(variable_name)
-							(stored_data[:user_variables][variable_name] || "")
+							value = (stored_data[:user_variables][variable_name] || "")
 						elsif request_params.has_key?(variable_name)
 							value = request_params[variable_name][:value] || ""
-							escape(connection, value)
 						end
+
+						escape(connection, value)
 					elsif item[:expression]
 						query_variable_to_check = item[:expression][:check_query_variable_exists]
 						query_variable_to_check = query_variable_to_check.to_s if query_variable_to_check != nil
@@ -256,13 +257,13 @@ class HTMLGenerator
 							end
 							
 							if variable_name
-								if stored_data[:user_variables].has_key?(variable_name)
-									value = (stored_data[:user_variables][variable_name] || "")
-									"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
-								elsif request_params.has_key?(variable_name)
-									value = request_params[variable_name][:value] || ""
-									type = request_params[variable_name][:type]
+								value = stored_data[:user_variables][variable_name]
 
+								if value == nil && request_params[variable_name] != nil
+									request_params[variable_name][:value]
+								end
+
+								if value != nil
 									value = escape(connection, value) if escaped
 									"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
 								else
