@@ -19,7 +19,7 @@ class HTMLGenerator
 	end
 
 	def process_text_expression(parameters)
-		if !variable_check_passed(parameters[:text_expression])
+		if !variable_checks_passed(parameters[:text_expression])
 			return text("")
 		end
 
@@ -172,35 +172,39 @@ class HTMLGenerator
 		val.is_a?(Array) ? "" : val.to_s
 	end
 
-	def variable_check_passed(parameters)
-		variable_existence_check = parameters[:check_query_variable_exists] != nil
-		variable_value_check = parameters[:check_variable_key] != nil
-		check_passed = true
+	def variable_checks_passed(parameters)
+		return true if parameters[:variable_checks] == nil
 
-		if variable_existence_check
-			query_variable_to_check = parameters[:check_query_variable_exists]
-			query_variable_to_check = query_variable_to_check.to_s if query_variable_to_check != nil
+		parameters[:variable_checks].each {|check|
+			variable_existence_check = check[:check_query_variable_exists] != nil
+			variable_value_check = check[:check_variable_key] != nil
+			check_passed = true
 
-			check_passed = false if stored_data[:request_params][query_variable_to_check] == nil && stored_data[:user_variables][query_variable_to_check] == nil
-		elsif variable_value_check
-			checked_variable_key = parameters[:check_variable_key].to_s
-			checked_variable_value = parameters[:check_variable_value]
-			checked_variable_value = strip_quotes(checked_variable_value.to_s) if checked_variable_value != nil
+			if variable_existence_check
+				query_variable_to_check = check[:check_query_variable_exists]
+				query_variable_to_check = query_variable_to_check.to_s if query_variable_to_check != nil
 
-			if stored_data[:request_params][checked_variable_key] != nil
-				check_passed = false if stored_data[:request_params][checked_variable_key][:value] != checked_variable_value
-			elsif stored_data[:user_variables][checked_variable_key] != nil
-				check_passed = false if stored_data[:user_variables][checked_variable_key] != checked_variable_value
-			else
-				check_passed = false
+				return false if stored_data[:request_params][query_variable_to_check] == nil && stored_data[:user_variables][query_variable_to_check] == nil
+			elsif variable_value_check
+				checked_variable_key = check[:check_variable_key].to_s
+				checked_variable_value = check[:check_variable_value]
+				checked_variable_value = strip_quotes(checked_variable_value.to_s) if checked_variable_value != nil
+
+				if stored_data[:request_params][checked_variable_key] != nil
+					return false if stored_data[:request_params][checked_variable_key][:value] != checked_variable_value
+				elsif stored_data[:user_variables][checked_variable_key] != nil
+					return false if stored_data[:user_variables][checked_variable_key] != checked_variable_value
+				else
+					return false
+				end
 			end
-		end
+		}
 
-		return check_passed
+		return true
 	end
 
 	def process_data(parameters)
-		if !variable_check_passed(parameters[:data])
+		if !variable_checks_passed(parameters[:data])
 			return text("")
 		end
 
@@ -256,7 +260,7 @@ class HTMLGenerator
 
 						strip_quotes(escape(connection, strip_quotes(value)))
 					elsif item[:expression]
-						if variable_check_passed(item[:expression])
+						if variable_checks_passed(item[:expression])
 							variable_name = nil
 							escaped = false
 

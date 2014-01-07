@@ -29,7 +29,7 @@ class GingerParser < Parslet::Parser
 	rule(:query_variable) { unescaped_query_variable | escaped_query_variable }
 	rule(:check_query_variable_exists) { unquoted_word.as(:check_query_variable_exists) >> str('?') }
 	rule(:check_variable_value) { unquoted_word.as(:check_variable_key) >> str('=') >> string.as(:check_variable_value) >> str('?') }
-	rule(:variable_check) { check_query_variable_exists | check_variable_value }
+	rule(:variable_check) { (check_query_variable_exists | check_variable_value).repeat(1).as(:variable_checks) }
 	rule(:query_expression) { str('{:') >> variable_check.maybe >> (query_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> query_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
 	rule(:query_text_fragment) { (query_expression.absent? >> query_variable.absent? >> str(':]').absent? >> any).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
