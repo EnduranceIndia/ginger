@@ -102,6 +102,8 @@ get '/page/:page_id/edit' do
 	@page_id = params[:page_id]
 	@page = nil
 
+	@page_title = "Edit page"
+
 	if page_exists(@page_id)
 		@page = load_page(@page_id)
 	end
@@ -161,6 +163,7 @@ get '/page/:page_id' do
 
 		haml :show_page
 	else
+		@page_title = "New page"
 		@page = {}
 		haml :edit_page
 	end
