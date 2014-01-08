@@ -108,6 +108,9 @@ class HTMLGenerator
 				options = template_params['options'].to_a.collect {|item| item.to_s }
 				values = template_params['values'].to_a.collect {|item| item.to_s }
 
+				options = [options] if !options.is_a?(Array)
+				values = [values] if !values.is_a?(Array)
+
 				if options.length != values.length
 					text("[Options and values of input #{template_params['name']} are not of equal length.]")
 				else
@@ -141,6 +144,9 @@ class HTMLGenerator
 		
 		options = template_params['options']
 		values = template_params['values']
+
+		options = [options] if !options.is_a?(Array)
+		values = [values] if !values.is_a?(Array)
 
 		if options.length != values.length
 			text("[There must be as many options as values, no more or less.]")
