@@ -173,7 +173,7 @@ class HTMLGenerator
 			elsif template_params['default']
 				stored_data[:user_variables][destination] = strip_quotes(template_params['default'])
 			else
-				error = text("[Value not found.]")
+				error = empty_text
 			end
 
 			error || empty_text
