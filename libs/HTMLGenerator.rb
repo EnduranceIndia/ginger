@@ -91,7 +91,13 @@ class HTMLGenerator
 			else
 				name, title, type = parse_param_data(template_params)
 				store_param_data(stored_data, template_params, params, name, title, type)
-				text("#{title} <input type='textbox' name='p_#{name}'></input>")
+				value_attribute = nil
+				
+				if stored_data[:request_params][name]
+					value_attribute = "value='#{stored_data[:request_params][name][:value]}'"
+				end
+
+				text("#{title} <input type='textbox' name='p_#{name}' #{value_attribute}></input>")
 			end
 		when 'dropdown'
 			if !template_params.has_key?('name')
