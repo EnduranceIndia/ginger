@@ -165,7 +165,7 @@ class HTMLGenerator
 			index_of_value = options.index(stored_data[:user_variables][source])
 
 			if index_of_value == nil
-				index_of_value = options.index(stored_data[:request_params][source][:value])
+				index_of_value = options.index(stored_data[:request_params][source][:value]) if stored_data[:request_params][source]
 			end
 
 			if index_of_value != nil
