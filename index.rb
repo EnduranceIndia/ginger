@@ -218,10 +218,10 @@ h2. Tabular data
 
 <pre>
 [:peopledata select * from people :]
-This is how you can query a data source, and have it displayed in tabular format.
+peopledata is the data source being queried. The query "select * from people" is executed against this data source, and the result is displayed in tabular format. Tabular format is the default when the result is multiple rows or columns.
 
 [:peopledata select count(*) from people :]
-Since the result is scalar, it will be displayed as simple text without any table markup.
+Since the result has a single row and column, it will be displayed as plain text without any table markup.
 
 To explicitly specify the format:
 [:peopledata:scalar select count(*) from people :]
@@ -236,6 +236,13 @@ The value of city will be escaped.
 
 The where clauses will be added if city exists.
 [:peopledata select * from people {:city? where 1=2 :}]
+
+To specify a datasource that is contained in a variable:
+<:dsname=employee_ds:>
+[:{:dsname:} select * from people :]
+
+This is useful when the data source needs to be changed based on some user specified input. A case statement may be used to set a variable based on the value of the input, and that variable may be used as a data source.
+
 </pre>
 
 h2. Graphs
@@ -255,10 +262,25 @@ Bar and line charts are similar. xtitle and ytitle parameters may be specified.
 h2. Forms
 
 <pre>
-<:input:dropdown (name=country options=US,India,China values=us,india,cn:>
+Forms allow the viewer of the page to supply values with which queries on the page may be parameterized.
+
+Forms are ideally declared at the top of the page. They must use the following syntax:
+form. <:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :> <:input:submit:>
+
+A form declaration must be on a single line. The submit button at the end of the form declaration is at this time essential.
+
+Here are the currently supported form fields:
+
+DROPDOWN
+
+<:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :>
+A dropdown will b displayed showing the options US, India, China, with corresponding values us, india and cn. When supplied by the user, they will be available in a variable named "country". The title of the dropdown will be displayed as "Country".
+
+TEXTBOX
 
 <:input:text (name=city) :>
 
+SUBMIT BUTTON
 <:input:submit:>
 Displays the submit button
 </pre>
@@ -266,14 +288,15 @@ Displays the submit button
 h2. Text expressions
 
 <pre>
-{: display this if :city: is specified }
-Displays "display this if mumbai is specified" assuming that either a variable or form parameter named city exists, and it's value is "mumbai".
+{: display this if :city: is specified :}
+If either a form parameter or variable named city exists, this displays "display this if mumbai is specified" assuming that either a variable or form parameter named city exists, and it's value is "mumbai".
+If no such variable exists, the entire expression is rendered as an empty string.
 
-{:city? display this if a city is specified }
-Displays "display this if a city is specified" if a form parameter named city exists.
+{:city? display this if a city is specified :}
+Displays "display this if a city is specified" if a form parameter or variable named city exists. If not, the entire expression is rendered as an empty string.
 </pre>
 
-h2. Panel formatting for tables
+h2. Side-by-side panel formatting for tables
 
 <pre>
 On the line before each table, put the following tag:
