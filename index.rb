@@ -9,6 +9,7 @@ require './libs/database'
 require './libs/stop_evaluation'
 require './libs/ginger_parser'
 require './libs/HTMLGenerator.rb'
+require './libs/CSVGenerator.rb'
 require './libs/common_utils.rb'
 
 require 'rubygems'
@@ -129,7 +130,12 @@ get '/page/:page_id' do
 		query_params = remove_cache_request(uri.query, true) || ""
 		last_modified_time, cached_page = get_cached_page(@page_id, query_params)
 
-		if params['cache'] != 'true' && cached_page
+		if params['id']
+			parse_tree = parse_ginger_doc(@page['content'])
+			content_type 'text/plain'
+
+			return CSVGenerator.new(params).generate(parse_tree)
+		elsif (params['cache'] != 'true' && cached_page)
 			@page['content'] = cached_page
 			cached_time = Time.now - last_modified_time
 
@@ -305,6 +311,19 @@ On the line before each table, put the following tag:
 After all the side-by-side tables, put this tag:
 <:sidebyside:end>
 </pre>
+
+h2. CSV format
+
+To display a single query in csv format:
+
+* give the query an id. e.g. [:peopledata (id=testid) select * from people :]
+* formulate the url like this: http://hostname:port/page/pagename?id=testid&format=csv
+
+If you wish to change the quote, line separator or format separator, use the parameters in the url below:
+http://hostname:port/page/pagename?id=testid&format=csv&col_separator=%7C&quote="&line_separator=$
+
+This url specifies The line separator as $, and the quote as ". The column separator is given as %7C, which is the url encoded value of the | character. Not all symbols need to be encoded like this. It is necessary only if the application displays an error. 
+
 
 h2. ERB notes
 
