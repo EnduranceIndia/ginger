@@ -202,115 +202,174 @@ get '/help' do
 	help_text = <<-END
 h2. Variables
 
-<pre>
-<:var:>
-Displays the value of var.
-</pre>
+Set the value of "var" to "b":
 
-h2. Case
+<pre>
+<: var=b :></pre>
+
+Display the value of "var":
+
+<pre>
+<:var:></pre>
+
+h2. Case statement
+
+|_. Value of test "var" |_. Corresponding value of "var2" |
+| a | 1 |
+| b | 2 |
+| c | 3 |
+
+<br>
 
 <pre>
 <: var=b :>
+<:case:var:var2 (options=a,b,c values=1,2,3)</pre>
 
-<:case:var:var2 (options=a,b,c values=1,2,3)
-When var is a, var2 is set to 1; when var is b, var2 is set to 2, etc. The name var can may refer to either a variable or a form parameter. If a variable and a form parameter exist by the same name, the variable is given preference.
+The test may refer to either a variable or a form parameter. If a variable and a form parameter exist by the same name, the variable is given preference. You can display the value of var2, which would be 2 in this case, using:
 
-<:var2:>
-Display the value of var2, which would be 2
-
-</pre>
+<pre>
+<:var2:></pre>
 
 h2. Tabular data
 
+In the statement below, peopledata is the data source being queried. The query "select * from people" is executed against this data source, and the result is displayed in tabular format. Tabular format is the default when the result is multiple rows or columns.
+
 <pre>
-[:peopledata select * from people :]
-peopledata is the data source being queried. The query "select * from people" is executed against this data source, and the result is displayed in tabular format. Tabular format is the default when the result is multiple rows or columns.
+[:peopledata select * from people :]</pre>
 
-[:peopledata select count(*) from people :]
-Since the result has a single row and column, it will be displayed as plain text without any table markup.
+In the statement below, the result has a single row and column, so the output will be rendered as plain text without any table markup.
 
-To explicitly specify the format:
+<pre>
+[:peopledata select count(*) from people :]</pre>
+
+To explicitly choose plain text:
+
+<pre>
 [:peopledata:scalar select count(*) from people :]
+</pre>
 
-OR
+and for tabular output:
 
+<pre>
 [:peopledata:table select count(*) from people :]
+</pre>
 
-[:peopledata select * from people {: where city='::city::' :}]
-The where clause will be added only if the city variable exists.
-The value of city will be escaped.
+h2. Query expressions
 
-The where clauses will be added if city exists.
-[:peopledata select * from people {:city? where 1=2 :}]
+<pre>
+[:peopledata select * from people {: where city='::city::' :}]</pre>
+
+The where clause will be added only if the city variable exists. The value of city will be escaped, because it is enclosed in double colons. Values are not escaped when enclosed in a single colons, like so:
+
+<pre>
+[:peopledata select * from people {: where age > :age: :}]</pre>
+
+In the statement below, the where clauses will be added if city has been specified as a form parameter or variable.
+
+<pre>
+[:peopledata select * from people {:city? where 1=2 :}]</pre>
 
 To specify a datasource that is contained in a variable:
+
+<pre>
 <:dsname=employee_ds:>
-[:{:dsname:} select * from people :]
+[:{:dsname:} select * from people :]</pre>
 
-This is useful when the data source needs to be changed based on some user specified input. A case statement may be used to set a variable based on the value of the input, and that variable may be used as a data source.
+This is useful when the data source needs to be changed based on some user specified input.
 
-</pre>
+A case statement may be used to set a variable based on the value of the input, and that variable may be used as a data source:
+
+<pre>
+<:case:input:dsname (options=1,2,3 dsname=a,b,c) :>
+[:{:dsname:} select * from people :]</pre>
 
 h2. Graphs
 
 <pre>
-[:peopledata:pie select city, count(*) from people group by city :]
+[:peopledata:pie select city, count(*) from people group by city :]</pre>
+
 The result set would look something like this:
-Mumbai, 10
-Delhi, 20
-Bangalore, 30
+
+|_. Title |_. Value |
+| Mumbai |  10 |
+| Delhi | 20 |
+| Bangalore | 30 |
+
+<br>
+
 In each row, the first column contains the title, and the second column contains corresponding value.
 
-[:peopledata:bar (xtitle='Some title' ytitle='Some other title') select city, count(*) from people group by city :]
-Bar and line charts are similar. xtitle and ytitle parameters may be specified.
-</pre>
+<pre>
+[:peopledata:bar (xtitle='Some title' ytitle='Some other title') select city, count(*) from people group by city :]</pre>
+
+Bar and line charts are similar. xtitle and ytitle refer to the captions on the x and y axis, but are not compulsory.
 
 h2. Forms
 
-<pre>
-Forms allow the viewer of the page to supply values with which queries on the page may be parameterized.
+Forms allow the viewer of the page to supply values with which queries on the page may be parameterized. They are ideally declared at the top of the page. They must be described using the following syntax:
 
-Forms are ideally declared at the top of the page. They must use the following syntax:
-form. <:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :> <:input:submit:>
+<pre>
+form. <:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :> <:input:submit:></pre>
 
 A form declaration must be on a single line. The submit button at the end of the form declaration is at this time essential.
 
-Here are the currently supported form fields:
+Here are the currently supported form fields.
 
-DROPDOWN
+h4. Dropdown
 
-<:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :>
+<pre>
+<:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :></pre>
+
 A dropdown will b displayed showing the options US, India, China, with corresponding values us, india and cn. When supplied by the user, they will be available in a variable named "country". The title of the dropdown will be displayed as "Country".
 
-TEXTBOX
+h4. Textbox
 
-<:input:text (name=city) :>
+<pre>
+<:input:text (name=city) :></pre>
 
-SUBMIT BUTTON
-<:input:submit:>
-Displays the submit button
-</pre>
+h4. Submit button
+
+<pre>
+<:input:submit:></pre>
 
 h2. Text expressions
 
 <pre>
-{: display this if :city: is specified :}
-If either a form parameter or variable named city exists, this displays "display this if mumbai is specified" assuming that either a variable or form parameter named city exists, and it's value is "mumbai".
-If no such variable exists, the entire expression is rendered as an empty string.
+<: city=mumbai :>
+{: display this if :city: is specified :}</pre>
 
-{:city? display this if a city is specified :}
+This displays "display this if mumbai is specified" given that the value of "city" is "mumbai". But if no such variable exists, the entire expression is rendered as an empty string. "city" may also refer to a form parameter.
+
+<pre>
+{:city? display this if a city is specified :}</pre>
+
 Displays "display this if a city is specified" if a form parameter or variable named city exists. If not, the entire expression is rendered as an empty string.
-</pre>
 
 h2. Side-by-side panel formatting for tables
 
-<pre>
 On the line before each table, put the following tag:
-<:sidebyside:>
+
+<pre>
+<:sidebyside:></pre>
 
 After all the side-by-side tables, put this tag:
-<:sidebyside:end>
-</pre>
+
+<pre>
+<:sidebyside:end></pre>
+
+For example:
+
+<pre>
+<:sidebyside:>
+[:peopledata select * from people {: where city='::city::'' :}]
+
+<:sidebyside:>
+[:peopledata select * from people {:city? where age > 20 :}]
+
+<:sidebyside:>
+[:peopledata select * from people {:city? where state='::state::' :}]
+
+<:sidebyside:end:></pre>
 
 h2. CSV format
 
@@ -338,8 +397,7 @@ what should work inline in pages
 	collect('select country, count(*) count from orders group by country').from('sdhbll', 'mdhbll', 'bhbll').display(:pie)
 	query = 'select country, count(*) count from orders group by country'
 	q('sdhbll', query).q('mdhbll', query).q('bhbll', query).display(:pie)
-end
-</pre>
+end</pre>
 END
 
 	@page = {
