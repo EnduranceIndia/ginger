@@ -8,4 +8,4 @@ deploy*
 unicorn.rb
 config_production.rb
 config_development.rb
-
+*.sqlite

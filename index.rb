@@ -77,7 +77,7 @@ def remove_cache_request(url, cache_switch)
 end
 
 get '/' do
-	@list_of_pages = list_of_pages
+	@list_of_pages = page.list
 	haml :page_list
 end
 
@@ -105,9 +105,7 @@ get '/page/:page_id/edit' do
 
 	@page_title = "Edit page"
 
-	if page_exists(@page_id)
-		@page = load_page(@page_id)
-	end
+	@page = page.load(@page_id)
 
 	haml :edit_page
 end
@@ -122,9 +120,9 @@ get '/page/:page_id' do
 
 	@page_id = params[:page_id]
 
-	if page_exists(@page_id)
-		@page = load_page(@page_id)
+	@page = page.load(@page_id)
 
+	if @page
 		uri = URI.parse(request.url)
 
 		query_params = remove_cache_request(uri.query, true) || ""
@@ -177,7 +175,7 @@ end
 
 post '/page/:page_id' do
 	if params['delete_page'] == 'true'
-		delete_page(params[:page_id])
+		page.delete(params[:page_id])
 		return redirect to("/")
 	end
 
@@ -193,7 +191,7 @@ post '/page/:page_id' do
 
 	page_id = params[:page_id]
 
-	write_page(page_id, content)
+	page.save(page_id, content)
 
 	redirect to("/page/#{page_id}")
 end

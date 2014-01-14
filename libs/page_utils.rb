@@ -1,5 +1,141 @@
 require 'fileutils'
 require 'parallel'
+require 'sqlite3'
+require 'sequel'
+
+def page
+	return SQLiteStore.new
+end
+
+class SQLiteStore
+	attr_reader :version
+
+	def initialize
+		@version = get_version
+	end
+
+	def db_file_path
+		get_base_path("data.sqlite")
+	end
+
+	def db_exists
+		File.exists?(db_file_path)
+	end
+
+	def connection
+		return @connection if @connection != nil
+
+		@connection = Sequel.sqlite(db_file_path)
+		return @connection
+	end
+
+	def get_version
+		 return connection[:version].get(:version).to_i if connection.table_exists?(:version)
+		 return -1
+	end
+
+	def get_base_path(file_path)
+		return get_conf['base_files_directory'] + "/#{file_path}"
+	end
+
+	def update_database_version(version)
+		connection[:version].update(:version => version)
+	end
+
+	def migrate
+		if @version == -1
+			connection.create_table(:version) do
+				Bignum :version
+			end
+
+			connection.create_table(:pages) do
+				primary_key :id, type: Bignum
+				String :page_id
+				Text :title
+				Text :content
+			end
+
+			connection[:version].insert(0)
+
+			FlatFileStore.new.list.each {|id|
+				data = FlatFileStore.new.load(id)
+				title = data['title']
+				content = data['content']
+
+				connection[:pages].insert(page_id: id, title: title, content: content)
+			}
+		end
+	end
+
+	def close
+		if @connection
+			@connection.disconnect
+			@connection = nil
+		end
+	end
+
+	def load(page_id)
+		page = connection[:pages].where(page_id: page_id).first
+		to_hash(page)
+	end
+
+	def save(page_id, content)
+		connection[:pages].where(page_id: page_id).update(content: content['content'])
+		destroy_cache(page_id)
+	end
+
+	def to_hash(page)
+		{
+			'title' => page[:title],
+			'id' => page[:id],
+			'content' => page[:content]
+		}
+	end
+
+	def list
+		connection[:pages].collect {|page| page[:page_id] }.sort
+	end
+
+	def delete(page_id)
+		destroy_cache(page_id)
+		connection[:pages].where(page_id: page_id).delete
+	end
+end
+
+class FlatFileStore
+	def exists?(page_id)
+		File.exists?("#{get_conf['base_files_directory']}/pages/#{page_id}")
+	end
+
+	def load(page_id)
+		JSON.parse(File.read(get_page_filepath(page_id)))
+	end
+
+	def get_page_filepath(page_id)
+		return "#{get_conf['base_files_directory']}/pages/#{page_id}"
+	end
+
+	def save(page_id, content)
+		if page_id.include?('/') || page_id.include?('..')
+			raise "Cannot create a page containing either / or .."
+		end
+
+		page_filepath = get_page_filepath(page_id)
+		File.open(page_filepath, "w+") {|f| f.write JSON.dump(content) }
+
+		destroy_cache(page_id)
+	end
+
+	def list
+		Dir.entries("#{get_conf['base_files_directory']}/pages").reject {|file| file.index('.') == 0}
+	end
+
+	def delete(page_id)
+		destroy_cache(page_id)
+		page_filepath = get_page_filepath(page_id)
+		File.delete(page_filepath) if File.exists?(page_filepath)
+	end
+end
 
 def get_edit_link(url)
 	uri = URI.parse(url)
@@ -15,39 +151,6 @@ def strip_quotes(val)
 	end
 
 	return val
-end
-
-def page_exists(page_id)
-	File.exists?("#{get_conf['base_files_directory']}/pages/#{page_id}")
-end
-
-def load_page(page_id)
-	JSON.parse(File.read(get_page_filepath(page_id)))
-end
-
-def get_page_filepath(page_id)
-	return "#{get_conf['base_files_directory']}/pages/#{page_id}"
-end
-
-def write_page(page_id, content)
-	if page_id.include?('/') || page_id.include?('..')
-		raise "Cannot create a page containing either / or .."
-	end
-
-	page_filepath = get_page_filepath(page_id)
-	File.open(page_filepath, "w+") {|f| f.write JSON.dump(content) }
-
-	destroy_cache(page_id)
-end
-
-def list_of_pages
-	Dir.entries("#{get_conf['base_files_directory']}/pages").reject {|file| file.index('.') == 0}
-end
-
-def delete_page(page_id)
-	destroy_cache(page_id)
-	page_filepath = get_page_filepath(page_id)
-	File.delete(page_filepath) if File.exists?(page_filepath)
 end
 
 def destroy_cache(page_id)
@@ -172,3 +275,12 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
         chart.draw(data, options);
       } </script> <div id=\"#{name}\" style=\"#{width_clause} #{height_clause}\"></div>"
 end
+
+store = SQLiteStore.new
+
+if store.version == -1
+	store.migrate
+end
+
+store.close
+store = nil

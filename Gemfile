@@ -10,3 +10,5 @@ gem 'sequel_pg'
 gem 'parallel'
 gem 'capistrano'
 gem 'parslet'
+gem 'sqlite3'
+
