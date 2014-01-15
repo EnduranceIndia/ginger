@@ -40,14 +40,6 @@ def template_to_html(content, params)
 	return new_content
 end
 
-def parse_param_data(template_params)
-	name = strip_quotes(template_params['name'].to_s)
-	title = strip_quotes(template_params['title'].to_s)
-	type = strip_quotes(template_params['type'].to_s)
-
-	return name, title, type
-end
-
 def store_param_data(stored_data, template_params, params, name, title, type)
 	param_name = "p_#{name}"
 

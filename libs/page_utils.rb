@@ -200,7 +200,7 @@ end
 
 module FormTag
 	def form(opts)
-		return "<form method=\"GET\" action=\"\">" + opts[:text] + "</form>"
+		return "<form method=\"GET\" action=\"\">" + opts[:text] + " <input type='submit' value='Query'> </form>"
 	end
 end
 
@@ -235,13 +235,8 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	matrix = matrix.clone
 	matrix.unshift cols
 
-	if chart_type != :pie
-		if xtitle == nil
-			return "[xtitle not specified for #{chart_type.to_s} chart.]"
-		elsif ytitle == nil
-			return "[ytitle not specified for #{chart_type.to_s} chart.]"
-		end
-	end
+	xtitle = xtitle || nil
+	ytitle = ytitle || nil
 
 	js_object_name = {:line => 'LineChart', :bar => 'BarChart', :pie => 'PieChart'}[chart_type]
 

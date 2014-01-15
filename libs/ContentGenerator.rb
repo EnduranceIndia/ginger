@@ -18,6 +18,14 @@ class ContentGenerator
 		return {:text => val}
 	end
 
+	def parse_param_data(template_params)
+		name = strip_quotes(template_params['name'].to_s)
+		title = strip_quotes(template_params['title'].to_s)
+		type = strip_quotes(template_params['type'].to_s)
+
+		return name, title, type
+	end
+
 	def process_text_expression(parameters)
 		if !variable_checks_passed(parameters[:text_expression])
 			return text("")
@@ -80,12 +88,10 @@ class ContentGenerator
 
 		case parameters[:input][:type].to_s
 		when 'submit'
-			text("<input type=\"submit\" value=\"Query\"></input>")
+			empty_text
 		when 'text'
 			if !template_params.has_key?('name')
 				text("[No name specified for input field.]")
-			elsif !template_params.has_key?('type')
-				text("[No type specified for input field.]")
 			elsif !template_params.has_key?('title')
 				text("[No title specified for input field.]")
 			else
@@ -102,8 +108,6 @@ class ContentGenerator
 		when 'dropdown'
 			if !template_params.has_key?('name')
 				text("[No name specified for input field.]")
-			elsif !template_params.has_key?('type')
-				text("[No type specified for input field.]")
 			elsif !template_params.has_key?('title')
 				text("[No title specified for input field.]")
 			elsif !template_params.has_key?('options')
