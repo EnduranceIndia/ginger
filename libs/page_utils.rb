@@ -235,8 +235,11 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	matrix = matrix.clone
 	matrix.unshift cols
 
-	xtitle = xtitle || nil
-	ytitle = ytitle || nil
+	xtitle = xtitle || ""
+	ytitle = ytitle || ""
+
+	xtitle = strip_quotes(xtitle)
+	ytitle = strip_quotes(ytitle)
 
 	js_object_name = {:line => 'LineChart', :bar => 'BarChart', :pie => 'PieChart'}[chart_type]
 
@@ -258,9 +261,11 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	options += " height: '#{height}'," if height
 	options += " width: '#{width}'," if width
 
-	options += "colors: ['#D3D3D3'], vAxis: {title: '#{ytitle}'}, hAxis: {title: '#{xtitle}'}" if [:bar_chart, :line_chart].include?(chart_type)
+	options += "colors: ['#D3D3D3'], vAxis: {title: '#{ytitle}'}, hAxis: {title: '#{xtitle}'}" if [:bar, :line].include?(chart_type)
 
 	options += "};"
+
+	puts options
 
 	width_clause = width != nil ? "width: #{width}; " : ""
 	height_clause = height != nil ? "height: #{height}; " : ""
