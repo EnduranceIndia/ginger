@@ -22,15 +22,15 @@ class SQLiteStore
 		File.exists?(db_file_path)
 	end
 
-	def connection
-		return @connection if @connection != nil
+	def db
+		return @db if @db != nil
 
-		@connection = Sequel.sqlite(db_file_path)
-		return @connection
+		@db = Sequel.sqlite(db_file_path)
+		return @db
 	end
 
 	def get_version
-		 return connection[:version].get(:version).to_i if connection.table_exists?(:version)
+		 return db[:version].get(:version).to_i if db.table_exists?(:version)
 		 return -1
 	end
 
@@ -39,48 +39,50 @@ class SQLiteStore
 	end
 
 	def update_database_version(version)
-		connection[:version].update(:version => version)
+		db[:version].update(:version => version)
 	end
 
 	def migrate
 		if @version == -1
-			connection.create_table(:version) do
+			db.create_table(:version) do
 				Bignum :version
 			end
 
-			connection.create_table(:pages) do
+			db.create_table(:pages) do
 				primary_key :id, type: Bignum
-				String :page_id
+				String :page_id, unique: true
 				Text :title
 				Text :content
 			end
 
-			connection[:version].insert(0)
+			db[:version].insert(0)
 
 			FlatFileStore.new.list.each {|id|
 				data = FlatFileStore.new.load(id)
 				title = data['title']
 				content = data['content']
 
-				connection[:pages].insert(page_id: id, title: title, content: content)
+				db[:pages].insert(page_id: id, title: title, content: content)
 			}
+
+			db.run 'PRAGMA journal_mode=WAL'
 		end
 	end
 
 	def close
-		if @connection
-			@connection.disconnect
-			@connection = nil
+		if @db
+			@db.disconnect
+			@db = nil
 		end
 	end
 
 	def load(page_id)
-		page = connection[:pages].where(page_id: page_id).first
+		page = db[:pages].where(page_id: page_id).first
 		to_hash(page)
 	end
 
 	def save(page_id, content)
-		connection[:pages].where(page_id: page_id).update(content: content['content'])
+		db[:pages].where(page_id: page_id).update(content: content['content'])
 		destroy_cache(page_id)
 	end
 
@@ -93,12 +95,12 @@ class SQLiteStore
 	end
 
 	def list
-		connection[:pages].collect {|page| page[:page_id] }.sort
+		db[:pages].collect {|page| page[:page_id] }.sort
 	end
 
 	def delete(page_id)
 		destroy_cache(page_id)
-		connection[:pages].where(page_id: page_id).delete
+		db[:pages].where(page_id: page_id).delete
 	end
 end
 
