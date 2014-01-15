@@ -102,7 +102,7 @@ class SQLiteStore
 	end
 
 	def list
-		db[:pages].collect {|page| page[:page_id] }.sort
+		db[:pages].collect {|page| {page_id: page[:page_id], title: page[:title] } }.sort {|page1, page2| page1[:title] <=> page2[:title] }
 	end
 
 	def delete(page_id)

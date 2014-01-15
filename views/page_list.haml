@@ -21,7 +21,7 @@
 							%a{:href => "/"} Home
 
 		- @list_of_pages.each do |page|
-			%a{:href => "/page/#{page['page_id']}"}=page['title']
+			%a{:href => "/page/#{page[:page_id]}"}=page[:title]
 			%br
 		%script{:src=>"/js/jquery-2.0.3.min.js"}
 		%script{:src=>"/bootstrap/js/bootstrap.min.js"}
