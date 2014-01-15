@@ -78,18 +78,25 @@ class SQLiteStore
 
 	def load(page_id)
 		page = db[:pages].where(page_id: page_id).first
-		to_hash(page)
+		if page then to_hash(page) else nil end
 	end
 
 	def save(page_id, content)
-		db[:pages].where(page_id: page_id).update(content: content['content'])
+		existing_page = load(page_id)
+
+		if existing_page != nil
+			db[:pages].where(page_id: page_id).update(title: content['title'], content: content['content'])
+		else
+			db[:pages].where(page_id: page_id).insert(page_id: page_id, title: content['title'], content: content['content'])
+		end
+
 		destroy_cache(page_id)
 	end
 
 	def to_hash(page)
-		{
+		return {
 			'title' => page[:title],
-			'id' => page[:id],
+			'page_id' => page[:page_id],
 			'content' => page[:content]
 		}
 	end

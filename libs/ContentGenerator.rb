@@ -328,7 +328,11 @@ class ContentGenerator
 			elsif parameters[:data][:format].to_s == 'table'
 				text(render_table(cols, resultset, markdown_table_class_added))
 			elsif parameters[:data][:format].to_s == 'scalar'
-				text(resultset[0][0].to_s)
+				if resultset[0] != nil && resultset[0][0] != nil
+					text(resultset[0][0].to_s)
+				else
+					empty_text
+				end
 			elsif ['line', 'bar', 'pie'].include?(parameters[:data][:format].to_s)
 				text(emit_chart(parameters[:data][:format].to_s.to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i))
 			else
