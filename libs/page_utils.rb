@@ -265,7 +265,7 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	width_clause = width != nil ? "width: #{width}; " : ""
 	height_clause = height != nil ? "height: #{height}; " : ""
 
-	name = Random.srand.to_s
+	name = (Random.new.rand * 100000).to_i.to_s
 
 	return "<script type=\"text/javascript\">
       google.load(\"visualization\", \"1\", {packages:[\"corechart\"]});
