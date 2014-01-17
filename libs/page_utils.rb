@@ -204,20 +204,110 @@ module FormTag
 	end
 end
 
-def format_column(col)
+def decimal_format(col)
 	return ("%.2f" % col).to_s if col.is_a? BigDecimal
 	return col.to_s
 end
 
-def render_table(cols, result, markdown_table_class_added)
+def conditional_col_format(col_name, value, rules)
+	return "|#{value.to_s}" if rules == nil || rules.length == 0
+
+	column_start = "|"
+	column_styles = []
+	column_value = value.to_s
+
+	rules.each {|rule|
+		failed = false
+		name_found = false
+
+		rule[:conditions].each {|condition|
+			test_col_name = condition[:column].to_s
+			next if test_col_name != col_name
+			name_found = true
+
+			test_value = condition[:value].to_s
+
+			if condition[:operator] != nil then
+				case condition[:operator].to_s
+				when '>'
+					failed = !(value.to_i > test_value.to_i)
+				when '>='
+					failed = !(value.to_i >= test_value.to_i)
+				when '='
+					failed = !(value.to_i == test_value.to_i)
+				when '<'
+					failed = !(value.to_i < test_value.to_i)
+				when '<='
+					failed = !(value.to_i <= test_value.to_i)
+				when '!='
+					failed = !(value.to_s != test_value.to_s)
+				when 'gt'
+					failed = !(value.to_s > test_value.to_s)
+				when 'ge'
+					failed = !(value.to_s >= test_value.to_s)
+				when 'lt'
+					failed = !(value.to_s < test_value.to_s)
+				when 'le'
+					failed = !(value.to_s <= test_value.to_s)
+				when 'eq'
+					failed = !(value.to_s == test_value.to_s)
+				else
+					failed = true
+				end
+			end
+		}
+
+		if !failed && name_found
+			rule[:format].each {|style|
+				style = strip_quotes(style.to_s)
+				
+				case style
+				when 'bold'
+					column_value = "*#{column_value}*"
+				when 'italics'
+					column_value = "_#{column_value}_"
+				when 'underline'
+					column_value = "+#{column_value}+"
+				else
+					style_type, style_value = style.split(':', 2)
+
+					case style_type
+					when 'text'
+						column_value = "%{color:#{style_value}}#{column_value}%"
+					when 'background', 'bg'
+						column_styles << "background-color: #{style_value}"
+					when 'format'
+						style_value = strip_quotes(style_value)
+						prepend = style_value.index('%%') == 0
+						append = style_value.reverse.index('%%') == 0
+
+						original_value = column_value
+						column_value = style_value.split('%%').join(column_value)
+						column_value += original_value if append
+						column_value = original_value + column_value if prepend
+					end
+				end
+					
+			}
+		end
+	}
+
+	column_style = column_styles.length > 0 ? "{#{column_styles.join(';')}}." : ''
+
+	return "#{column_start}#{column_style} #{column_value}"
+end
+
+def render_table(cols, result, markdown_table_class_added, conditional_formatting_rules)
 	view = ""
 
 	view += "table(table table-compact).\n" if !markdown_table_class_added
 
 	view += "|_." + cols.collect {|col| col.to_s }.join("|_.") + "|\n"
 
+	conditional_formatting_rules = [conditional_formatting_rules] if !conditional_formatting_rules.is_a?(Array)
+
 	view += result.collect {|row|
-		"|" + row.collect {|col| format_column(col) }.join("|") + "|"
+		cols.zip(row).collect {|col_name, value| conditional_col_format(col_name, decimal_format(value), conditional_formatting_rules) }.join + "|"
 	}.join("\n")
 
 	return view
@@ -264,8 +354,6 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	options += "colors: ['#D3D3D3'], vAxis: {title: '#{ytitle}'}, hAxis: {title: '#{xtitle}'}" if [:bar, :line].include?(chart_type)
 
 	options += "};"
-
-	puts options
 
 	width_clause = width != nil ? "width: #{width}; " : ""
 	height_clause = height != nil ? "height: #{height}; " : ""

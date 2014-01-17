@@ -330,12 +330,49 @@ class ContentGenerator
 				stored_data[:user_variables][template_params['store'].to_s] = resultset
 				empty_text
 			elsif parameters[:data][:format].to_s == 'table'
-				text(render_table(cols, resultset, markdown_table_class_added))
+				text(render_table(cols, resultset, markdown_table_class_added, parameters[:data][:conditional_formatting]))
 			elsif parameters[:data][:format].to_s == 'scalar'
 				if resultset[0] != nil && resultset[0][0] != nil
 					text(resultset[0][0].to_s)
 				else
 					empty_text
+				end
+			elsif parameters[:data][:format].to_s == 'dropdown'
+				if !parameters[:data][:arguments].has_key?('name')
+					text("Can't display a dropdown without a name.")
+				elsif !parameters[:data][:arguments].has_key?('title')
+					text("Can't display a dropdown without a title.")
+				elsif !parameters[:data][:arguments].has_key?('option_column')
+					text("Can't display a dropdown without option_column.")
+				elsif !parameters[:data][:arguments].has_key?('value_column')
+					text("Can't display a dropdown without value_column.")
+				else
+					option_col_index = cols.index(parameters[:data][:arguments]['option_column'].to_s)
+					value_col_index = cols.index(parameters[:data][:arguments]['value_column'].to_s)
+
+					if option_col_index == nil
+						text("Can't display dropdown without a valid option_column.")
+					elsif value_col_index == nil
+						text("Can't display dropdown without a valid value_column.")
+					else
+						name = parameters[:data][:arguments]['name'].to_s
+						title = strip_quotes(parameters[:data][:arguments]['title'].to_s)
+
+						html = "<span><select name=p_#{name}><option value=''>[#{title}]</option>"
+
+						options = resultset.collect {|row| row[option_col_index] }
+						values = resultset.collect {|row| row[value_col_index] }
+
+						options.zip(values).each {|option, id|
+							option = strip_quotes(option)
+							selected_state = params["p_#{name}"] == id.to_s ? "selected=true" : ""
+							html += "<option value='#{id}' #{selected_state}>#{option}</option>"
+						}
+
+						html += "</select></span>"
+
+						text(html)
+					end
 				end
 			elsif ['line', 'bar', 'pie'].include?(parameters[:data][:format].to_s)
 				text(emit_chart(parameters[:data][:format].to_s.to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i))
@@ -343,7 +380,7 @@ class ContentGenerator
 				if resultset.length == 1 && resultset[0].length == 1
 					text((resultset[0][0] || "nil").to_s)
 				else
-					text(render_table(cols, resultset, markdown_table_class_added))
+					text(render_table(cols, resultset, markdown_table_class_added, parameters[:data][:conditional_formatting]))
 				end
 			end
 		end

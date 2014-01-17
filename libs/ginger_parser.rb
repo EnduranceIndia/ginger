@@ -34,7 +34,12 @@ class GingerParser < Parslet::Parser
 	rule(:query_text_fragment) { (query_expression.absent? >> query_variable.absent? >> str(':]').absent? >> any).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
 	rule(:datasource_variable) { str('{:') >> unquoted_word.as(:datasource_variable) >> str(':}') }
-	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> query.as(:query) >> whitespace >> str(':]') }
+	
+	rule(:style_token) { unquoted_word >> (str(':') >> string).maybe }
+	rule(:styles) { (style_token.as(:value) >> whitespace >> str(',') >> whitespace).repeat >> style_token.as(:value) }
+	rule(:condition) { unquoted_word.as(:column) >> whitespace >> (str('=') | str('>=') | str('>') | str('<=') | str('<') | str('!=') | str('le') | str('lt') | str('eq') | str('gt') | str('ge')).as(:operator) >> whitespace >> string.as(:value) }
+	rule(:conditional_formatting) {((str('when') >> whitespace >> ((unquoted_word.as(:column).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)) | (((condition >> whitespace >> str('and') >> whitespace).repeat >> condition).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)))) >> whitespace).as(:rule).repeat }
+	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> (conditional_formatting.as(:conditional_formatting) >> whitespace).maybe >> query.as(:query) >> whitespace >> str(':]') }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }
 
@@ -78,7 +83,26 @@ def parse_ginger_doc(doc)
 		[:data, :input, :case].each {|tree_type|
 			rule({tree_type => subtree(:tree)}) {|d| args_transformer.call(tree_type, d) }
 		}
+
+		rule({rule: {conditions: subtree(:conditions), format: subtree(:format)}}) {|d|
+			conditions = d[:conditions].is_a?(Array) ? d[:conditions] : [d[:conditions]]
+			format = d[:format].is_a?(Array) ? d[:format] : [d[:format]]
+
+			{conditions: conditions, format: format}
+		}
 	end
 
 	transform.apply(result)
 end
+
+# begin
+# 	puts parse_ginger_doc("[:testdb when b > 10 then green, bold, italics select * from helloworld :]").inspect
+# 	puts
+# 	puts parse_ginger_doc("[:testdb when b > 10 and b < 20 then green, bold, italics select * from helloworld :]").inspect
+# 	puts
+# 	puts parse_ginger_doc("[:testdb when y then green when a > 20 then bold when b > 10 and b < 20 then green, bold, italics select * from helloworld :]").inspect
+# 	puts
+# 	puts parse_ginger_doc("[:testdb when y then green when a > 20 then bold when b > 10 and b < 20 then green, bold, italics select * from helloworld :]").inspect
+# rescue Object => e
+# 	puts e.cause.ascii_tree
+# end
