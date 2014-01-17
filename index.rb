@@ -401,21 +401,6 @@ http://hostname:port/page/pagename?id=testid&format=csv&col_separator=%7C&quote=
 
 This url specifies The line separator as $, and the quote as ". The column separator is given as %7C, which is the url encoded value of the | character. Not all symbols need to be encoded like this. It is necessary only if the application displays an error. 
 
-
-h2. ERB notes
-
-<pre>
-class ExecutionContext
-
-what should work inline in pages
-
-	query = 'select country, count(*) count from orders group by country'
-	ds['sdhbll'].query(query).ds['mdhbll'].query()
-
-	collect('select country, count(*) count from orders group by country').from('sdhbll', 'mdhbll', 'bhbll').display(:pie)
-	query = 'select country, count(*) count from orders group by country'
-	q('sdhbll', query).q('mdhbll', query).q('bhbll', query).display(:pie)
-end</pre>
 END
 
 	@page = {

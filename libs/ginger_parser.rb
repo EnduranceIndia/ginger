@@ -50,9 +50,10 @@ class GingerParser < Parslet::Parser
 	rule(:text_variable) { str(':') >> unquoted_word.as(:variable) >> str(':') }
 	rule(:check_text_variable_exists) { check_query_variable_exists }
 	rule(:text_expression) { str('{:') >> variable_check.maybe >> (text_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> text_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
-	rule(:erb) { str('<%') >> str('=').maybe >> (str('%>').absent? >> any).repeat >> str('%>') }
+	#rule(:erb) { str('<%') >> str('=').maybe >> (str('%>').absent? >> any).repeat >> str('%>') }
 
-	rule(:expression) { erb.as(:erb) | text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
+	#rule(:expression) { erb.as(:erb) | text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
+	rule(:expression) { text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
 
 	rule(:text) { (expression.absent? >> any).repeat(1) }
 
