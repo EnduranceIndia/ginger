@@ -312,6 +312,14 @@ h4. Dropdown
 
 A dropdown will b displayed showing the options US, India, China, with corresponding values us, india and cn. When supplied by the user, they will be available in a variable named "country". The title of the dropdown will be displayed as "Country".
 
+A dropdown can also be specified in terms of a database query, like so:
+
+<pre>
+[:peopledata (name=name title=Name option_column=name value_column=id) select * from people :]
+</pre>
+
+In this example, the name column of the result is what will be displayed in the dropdown box, and the corresponding id column is the value sent back for this field when the query button is pressed.
+
 h4. Textbox
 
 <pre>
@@ -360,6 +368,26 @@ For example:
 [:peopledata select * from people {:city? where state='::state::' :}]
 
 <:sidebyside:end:></pre>
+
+h2. Conditional formatting
+
+In the following table, any cell containing an age < 50 is highlighted with green, the rest with gray. The text is white.
+
+The id column has been turned into a link using textile syntax, which is "Title" : http://url.com (without the spaces)
+
+<pre>
+[:peopledata when id then format:'"id":http://go.to/%%' when age < 50 then background:green, text:white, bold when age >= 50 then background:gray, text:white select * from people :]</pre>
+
+The syntax for specifying a condition and associated style looks like this: when column > value then style
+
+In the conditions, use the following comparisons:
+* Numerical comparisons: >, <, >=, <=, =, !=
+* Text comparisons: gt, ge, lt, le, eq, ne
+
+Supported styles:
+* bold, italics underline. Just use them like in the above example.
+* Colors: may be specified as gray, green, etc. or in the #000, #000000 formats.
+* Format: This is a primitive tool meant for replacing the value of a column with another value. The format must be specified in either single or double quotes. In the format template, %% is used to represent the column value.
 
 h2. CSV format
 
