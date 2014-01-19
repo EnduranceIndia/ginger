@@ -209,7 +209,7 @@ def decimal_format(col)
 	return col.to_s
 end
 
-def conditional_col_format(col_name, value, rules)
+def conditional_col_format(col_name, value, original_value, rules)
 	return "|#{value.to_s}" if rules == nil || rules.length == 0
 
 	column_start = "|"
@@ -225,7 +225,19 @@ def conditional_col_format(col_name, value, rules)
 			next if test_col_name != col_name
 			name_found = true
 
-			test_value = condition[:value].to_s
+			test_value = condition[:value]
+
+			if original_value.class == String
+				test_value = test_value.to_s
+			elsif original_value.is_a?(Numeric)
+				if original_value.class == Integer
+					test_value = test_value.to_i
+				else
+					test_value = BigDecimal.new(test_value)
+				end
+			else
+				return "Conditional formatting does not recognize this value type."
+			end
 
 			if condition[:operator] != nil then
 				case condition[:operator].to_s
@@ -307,7 +319,7 @@ def render_table(cols, result, markdown_table_class_added, conditional_formattin
 	conditional_formatting_rules = [conditional_formatting_rules] if !conditional_formatting_rules.is_a?(Array)
 
 	view += result.collect {|row|
-		cols.zip(row).collect {|col_name, value| conditional_col_format(col_name, decimal_format(value), conditional_formatting_rules) }.join + "|"
+		cols.zip(row).collect {|col_name, value| conditional_col_format(col_name, decimal_format(value), value, conditional_formatting_rules) }.join + "|"
 	}.join("\n")
 
 	return view

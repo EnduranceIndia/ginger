@@ -37,7 +37,7 @@ class GingerParser < Parslet::Parser
 	
 	rule(:style_token) { unquoted_word >> (str(':') >> string).maybe }
 	rule(:styles) { (style_token.as(:value) >> whitespace >> str(',') >> whitespace).repeat >> style_token.as(:value) }
-	rule(:condition) { unquoted_word.as(:column) >> whitespace >> (str('=') | str('>=') | str('>') | str('<=') | str('<') | str('!=') | str('le') | str('lt') | str('eq') | str('gt') | str('ge')).as(:operator) >> whitespace >> string.as(:value) }
+	rule(:condition) { unquoted_word.as(:column) >> whitespace >> (str('=') | str('>=') | str('>') | str('<=') | str('<') | str('!=')).as(:operator) >> whitespace >> (match['\w_.'].repeat(1) | quoted_string).as(:value) }
 	rule(:conditional_formatting) {((str('when') >> whitespace >> ((unquoted_word.as(:column).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)) | (((condition >> whitespace >> str('and') >> whitespace).repeat >> condition).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)))) >> whitespace).as(:rule).repeat }
 	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> (conditional_formatting.as(:conditional_formatting) >> whitespace).maybe >> query.as(:query) >> whitespace >> str(':]') }
 
