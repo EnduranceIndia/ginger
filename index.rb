@@ -74,7 +74,16 @@ get '/' do
 end
 
 get '/explore/:datasource' do
-	template = "[:#{params['datasource']} show tables; :]"
+	template = nil
+
+	datasource_name = params['datasource']
+	database_type = get_conf['datasources'][datasource_name]['type']
+	
+	if database_type == 'mysql'
+		template = "[:#{datasource_name} when Tables_in_bllinvoices then format:'\"%%\":/explore/#{datasource_name}/%%' show tables; :]"
+	elsif database_type == 'psql'
+		template = "[:#{datasource_name} \\l :]"
+	end
 
 	@page = {}
 	@page['content'] = template_to_html(template, params)
@@ -83,7 +92,16 @@ get '/explore/:datasource' do
 end
 
 get '/explore/:datasource/:table' do
-	template = "[:#{params['datasource']} desc #{params['table']}; :]"
+	template = nil
+
+	datasource_name = params['datasource']
+	database_type = get_conf['datasources'][datasource_name]['type']
+	
+	if database_type == 'mysql'
+		template = "[:#{params['datasource']} desc #{params['table']}; :]"
+	elsif database_type == 'psql'
+		template = "[:#{params['datasource']} \d #{params['table']} :]"
+	end
 
 	@page = {}
 	@page['content'] = template_to_html(template, params)
