@@ -217,14 +217,14 @@ def conditional_col_format(col_name, value, original_value, rules)
 	column_value = value.to_s
 
 	rules.each {|rule|
-		failed = false
-		name_found = false
+		test_col_name = rule[:column].to_s
+		next if test_col_name != col_name
+
+		successes = 0
+		successes += 1 if rule[:conditions].length == 0
 
 		rule[:conditions].each {|condition|
-			test_col_name = condition[:column].to_s
-			next if test_col_name != col_name
-			name_found = true
-
+			success = false
 			test_value = condition[:value]
 
 			if original_value.class == String
@@ -242,34 +242,37 @@ def conditional_col_format(col_name, value, original_value, rules)
 			if condition[:operator] != nil then
 				case condition[:operator].to_s
 				when '>'
-					failed = !(value.to_i > test_value.to_i)
+					success = (value.to_i > test_value.to_i)
 				when '>='
-					failed = !(value.to_i >= test_value.to_i)
+					success = (value.to_i >= test_value.to_i)
 				when '='
-					failed = !(value.to_i == test_value.to_i)
+					success = (value.to_i == test_value.to_i)
 				when '<'
-					failed = !(value.to_i < test_value.to_i)
+					success = (value.to_i < test_value.to_i)
 				when '<='
-					failed = !(value.to_i <= test_value.to_i)
+					success = (value.to_i <= test_value.to_i)
 				when '!='
-					failed = !(value.to_s != test_value.to_s)
+					success = (value.to_s != test_value.to_s)
 				when 'gt'
-					failed = !(value.to_s > test_value.to_s)
+					success = (value.to_s > test_value.to_s)
 				when 'ge'
-					failed = !(value.to_s >= test_value.to_s)
+					success = (value.to_s >= test_value.to_s)
 				when 'lt'
-					failed = !(value.to_s < test_value.to_s)
+					success = (value.to_s < test_value.to_s)
 				when 'le'
-					failed = !(value.to_s <= test_value.to_s)
+					success = (value.to_s <= test_value.to_s)
 				when 'eq'
-					failed = !(value.to_s == test_value.to_s)
+					success = (value.to_s == test_value.to_s)
 				else
-					failed = true
+					success = false
 				end
 			end
+
+			break if !success
+			successes += 1
 		}
 
-		if !failed && name_found
+		if successes >= rule[:conditions].length
 			rule[:format].each {|style|
 				style = strip_quotes(style.to_s)
 				

@@ -37,8 +37,8 @@ class GingerParser < Parslet::Parser
 	
 	rule(:style_token) { unquoted_word >> (str(':') >> string).maybe }
 	rule(:styles) { (style_token.as(:value) >> whitespace >> str(',') >> whitespace).repeat >> style_token.as(:value) }
-	rule(:condition) { unquoted_word.as(:column) >> whitespace >> (str('=') | str('>=') | str('>') | str('<=') | str('<') | str('!=')).as(:operator) >> whitespace >> (match['\w_.'].repeat(1) | quoted_string).as(:value) }
-	rule(:conditional_formatting) {((str('when') >> whitespace >> ((unquoted_word.as(:column).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)) | (((condition >> whitespace >> str('and') >> whitespace).repeat >> condition).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)))) >> whitespace).as(:rule).repeat }
+	rule(:condition) { (str('=') | str('>=') | str('>') | str('<=') | str('<') | str('!=')).as(:operator) >> whitespace >> (match['\w_.'].repeat(1) | quoted_string).as(:value) }
+	rule(:conditional_formatting) {((str('when') >> whitespace >> ((unquoted_word.as(:column) >> whitespace >> str('then') >> whitespace >> styles.as(:format)) | (unquoted_word.as(:column) >> whitespace >> ((condition >> whitespace >> str('and') >> whitespace).repeat >> condition).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)))) >> whitespace).as(:rule).repeat }
 	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> (conditional_formatting.as(:conditional_formatting) >> whitespace).maybe >> query.as(:query) >> whitespace >> str(':]') }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }
@@ -85,11 +85,17 @@ def parse_ginger_doc(doc)
 			rule({tree_type => subtree(:tree)}) {|d| args_transformer.call(tree_type, d) }
 		}
 
-		rule({rule: {conditions: subtree(:conditions), format: subtree(:format)}}) {|d|
+		rule({rule: {column: simple(:column), conditions: subtree(:conditions), format: subtree(:format)}}) {|d|
 			conditions = d[:conditions].is_a?(Array) ? d[:conditions] : [d[:conditions]]
 			format = d[:format].is_a?(Array) ? d[:format] : [d[:format]]
 
-			{conditions: conditions, format: format}
+			{column: d[:column], conditions: conditions, format: format}
+		}
+
+		rule(rule: {column: simple(:column), format: subtree(:format)}) {|d|
+			format = d[:format].is_a?(Array) ? d[:format] : [d[:format]]
+
+			{column: d[:column], conditions: [], format: format}
 		}
 	end
 
@@ -97,13 +103,18 @@ def parse_ginger_doc(doc)
 end
 
 # begin
+# 	puts "Single condition"
 # 	puts parse_ginger_doc("[:testdb when b > 10 then green, bold, italics select * from helloworld :]").inspect
 # 	puts
-# 	puts parse_ginger_doc("[:testdb when b > 10 and b < 20 then green, bold, italics select * from helloworld :]").inspect
+# 	puts "Existence condition"
+# 	puts parse_ginger_doc("[:testdb when b then green, bold, italics select * from helloworld :]").inspect
 # 	puts
-# 	puts parse_ginger_doc("[:testdb when y then green when a > 20 then bold when b > 10 and b < 20 then green, bold, italics select * from helloworld :]").inspect
+# 	puts "Multiple conditions"
+#  	puts parse_ginger_doc("[:testdb when b > 10 and < 20 then green, bold, italics select * from helloworld :]").inspect
 # 	puts
-# 	puts parse_ginger_doc("[:testdb when y then green when a > 20 then bold when b > 10 and b < 20 then green, bold, italics select * from helloworld :]").inspect
+# 	puts "Multiple conditions, a single condition and an existence condition"
+#  	puts parse_ginger_doc("[:testdb when y then green when a > 20 then bold when b > 10 and < 20 then green, bold, italics select * from helloworld :]").inspect
+#  	puts
 # rescue Object => e
 # 	puts e.cause.ascii_tree
 # end
