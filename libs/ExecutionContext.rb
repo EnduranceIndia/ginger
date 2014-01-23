@@ -1,6 +1,6 @@
 require 'parallel'
-require './libs/page_utils'
-require './libs/database'
+require "#{BASE}/libs/page_utils"
+require "#{BASE}/libs/database"
 
 class ExecutionContext
 	def initialize(stored_data)

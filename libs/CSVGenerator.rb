@@ -1,4 +1,4 @@
-require './libs/ContentGenerator.rb'
+require "#{BASE}/libs/ContentGenerator.rb"
 
 class CSVGenerator < ContentGenerator
 	def initialize(params)

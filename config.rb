@@ -3,7 +3,7 @@ def get_conf
 		'datasources' => {}
 	}
 
-	require "./config_#{ENV['RACK_ENV']}"
+	require "#{BASE}/config_#{ENV['RACK_ENV']}"
 
 	env_conf(conf)
 

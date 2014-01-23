@@ -1,4 +1,4 @@
-require './libs/page_utils.rb'
+require "#{BASE}/libs/page_utils.rb"
 
 def format(connection, value, type)
 	return escape(connection, value) if type == 'string'

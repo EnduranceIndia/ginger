@@ -1,5 +1,5 @@
-require './libs/ExecutionContext.rb'
-require './libs/page_utils.rb'
+require "#{BASE}/libs/ExecutionContext.rb"
+require "#{BASE}/libs/page_utils.rb"
 require 'erb'
 
 class ContentGenerator

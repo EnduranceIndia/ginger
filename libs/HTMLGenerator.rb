@@ -1,4 +1,4 @@
-require './libs/ContentGenerator.rb'
+require "#{BASE}/libs/ContentGenerator.rb"
 
 class HTMLGenerator < ContentGenerator
 	def initialize(params)

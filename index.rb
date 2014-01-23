@@ -1,16 +1,18 @@
 require 'json'
 require 'uri'
 
-require './libs/params'
-require './config'
+BASE = File.dirname(__FILE__)
 
-require './libs/page_utils'
-require './libs/database'
-require './libs/stop_evaluation'
-require './libs/ginger_parser'
-require './libs/HTMLGenerator.rb'
-require './libs/CSVGenerator.rb'
-require './libs/common_utils.rb'
+require "#{BASE}/libs/params"
+require "#{BASE}/config"
+
+require "#{BASE}/libs/page_utils"
+require "#{BASE}/libs/database"
+require "#{BASE}/libs/stop_evaluation"
+require "#{BASE}/libs/ginger_parser"
+require "#{BASE}/libs/HTMLGenerator.rb"
+require "#{BASE}/libs/CSVGenerator.rb"
+require "#{BASE}/libs/common_utils.rb"
 
 require 'rubygems'
 require 'sinatra'
