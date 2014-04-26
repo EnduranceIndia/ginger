@@ -286,17 +286,15 @@ class ContentGenerator
 			return text("")
 		end
 
+		markdown_table_class_added = @markdown_table_class_added
+		@markdown_table_class_added = nil
+
 		request_params = stored_data[:request_params]
 		template_params = parameters[:data][:arguments] || {}
 		
 		conf = get_conf
 
-		if parameters[:data][:datasource_variable]
-			data = stored_data[:user_variables]
-			
-			cols = data[0]
-			resultset = data.drop(1)
-		elsif parameters[:data][:datasource_variable]
+		if parameters[:data][:datasource]
 			if parameters[:data][:datasource_variable]
 				datasource_name = stored_data[:user_variables][parameters[:data][:datasource_variable].to_s]
 			else
@@ -348,7 +346,7 @@ class ContentGenerator
 
 			cols, resultset = data.take(1), data.drop(1)
 		else
-			return text("[Neither datasource nor reference not found]")
+			return text("[Neither datasource nor reference found]")
 		end
 
 		if template_params.has_key?('store')
