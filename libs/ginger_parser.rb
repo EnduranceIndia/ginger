@@ -39,7 +39,9 @@ class GingerParser < Parslet::Parser
 	rule(:styles) { (style_token.as(:value) >> whitespace >> str(',') >> whitespace).repeat >> style_token.as(:value) }
 	rule(:condition) { (str('=') | str('>=') | str('>') | str('<=') | str('<') | str('!=')).as(:operator) >> whitespace >> (match['\w_.'].repeat(1) | quoted_string).as(:value) }
 	rule(:conditional_formatting) {((str('when') >> whitespace >> ((unquoted_word.as(:column) >> whitespace >> str('then') >> whitespace >> styles.as(:format)) | (unquoted_word.as(:column) >> whitespace >> ((condition >> whitespace >> str('and') >> whitespace).repeat >> condition).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)))) >> whitespace).as(:rule).repeat }
-	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:datasource) | datasource_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> (conditional_formatting.as(:conditional_formatting) >> whitespace).maybe >> query.as(:query) >> whitespace >> str(':]') }
+	rule(:data_variable) { str('$') >> unquoted_word.as(:data_variable) }
+
+	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:datasource) | datasource_variable | data_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> (conditional_formatting.as(:conditional_formatting) >> whitespace).maybe >> query.as(:query) >> whitespace >> str(':]') }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }
 
@@ -50,10 +52,10 @@ class GingerParser < Parslet::Parser
 	rule(:text_variable) { str(':') >> unquoted_word.as(:variable) >> str(':') }
 	rule(:check_text_variable_exists) { check_query_variable_exists }
 	rule(:text_expression) { str('{:') >> variable_check.maybe >> (text_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> text_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
-	#rule(:erb) { str('<%') >> str('=').maybe >> (str('%>').absent? >> any).repeat >> str('%>') }
 
-	#rule(:expression) { erb.as(:erb) | text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
-	rule(:expression) { text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) }
+	rule(:ruby_code) { str('[%') >> ((str('%]').absent? >> str('"').absent? >> str("'").absent? >> any) | quoted_string).repeat.as(:code) >> str('%]') }
+
+	rule(:expression) { text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) | ruby_code }
 
 	rule(:text) { (expression.absent? >> any).repeat(1) }
 
@@ -102,19 +104,10 @@ def parse_ginger_doc(doc)
 	transform.apply(result)
 end
 
-# begin
-# 	puts "Single condition"
-# 	puts parse_ginger_doc("[:testdb when b > 10 then green, bold, italics select * from helloworld :]").inspect
-# 	puts
-# 	puts "Existence condition"
-# 	puts parse_ginger_doc("[:testdb when b then green, bold, italics select * from helloworld :]").inspect
-# 	puts
-# 	puts "Multiple conditions"
-#  	puts parse_ginger_doc("[:testdb when b > 10 and < 20 then green, bold, italics select * from helloworld :]").inspect
-# 	puts
-# 	puts "Multiple conditions, a single condition and an existence condition"
-#  	puts parse_ginger_doc("[:testdb when y then green when a > 20 then bold when b > 10 and < 20 then green, bold, italics select * from helloworld :]").inspect
-#  	puts
-# rescue Object => e
-# 	puts e.cause.ascii_tree
-# end
+begin
+	puts parse_ginger_doc("[:$addresses (id=addreses) :]").inspect
+	puts parse_ginger_doc("[:peopledata (id=addreses) select * from people :]").inspect
+	puts parse_ginger_doc("[:{:ds:} (id=addreses) select * from people :]").inspect
+rescue Object => e
+	puts e.cause.ascii_tree
+end

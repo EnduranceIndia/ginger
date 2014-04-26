@@ -22,6 +22,15 @@ class ExecutionContext
 		raise NotAllowedError.new("#{call} not allowed.") if !@allowed.include?(call)
 	end
 
+	def store(name)
+		verify_validity('store')
+		
+		execute
+
+		@stored_data[:user_variables][name] = @last_result
+		return nil
+	end
+
 	def [](datasource_name)
 		verify_validity('[]')
 
@@ -35,7 +44,7 @@ class ExecutionContext
 		verify_validity('query')
 
 		@queries << {datasource_name: @datasource_name, query: query, params: params}
-		@allowed = ['[]', 'query', 'display']
+		@allowed = ['[]', 'query', 'store']
 
 		return self
 	end
@@ -66,27 +75,13 @@ class ExecutionContext
 		@stored_data[:request_params].has_key?(key)
 	end
 
-	def display(type, options={})
-		verify_validity('display')
-
+	def execute
 		results = Parallel.map(@queries, :in_processes => 10) {|query_info|
 			connection = get_datasource_connection(query_info[:datasource_name])
 			connection.query_table(query_info[:query], *query_info[:params])
 		}
 
-		cols = results[0][0]
-
-		displayable_data = results.collect {|cols, result| result }.inject(:+)
-
-		@allowed = ['query', '[]']
-
-		if type == :table
-			render_table(cols, displayable_data)
-		elsif type == :scalar
-			displayable_data[0][0].to_s
-		else
-			emit_chart(type, displayable_data, cols, nil, options['title'], options['xtitle'], options['ytitle'], options['height'], options['width'])
-		end
+		@last_result = results
 	end
 
 	def _binding
