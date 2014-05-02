@@ -75,6 +75,14 @@ get '/' do
 	haml :page_list
 end
 
+get '/explore' do
+	@page = {
+		'content' => "<h2>Datasources</h2>\n<ul>" + get_conf['datasources'].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + "</ul>"
+	}
+
+	haml :show_page
+end
+
 get '/explore/:datasource' do
 	template = nil
 
@@ -83,8 +91,8 @@ get '/explore/:datasource' do
 	
 	if database_type == 'mysql'
 		template = "[:#{datasource_name} when Tables_in_bllinvoices then format:'\"%%\":/explore/#{datasource_name}/%%' show tables; :]"
-	elsif database_type == 'psql'
-		template = "[:#{datasource_name} \\l :]"
+	elsif database_type == 'postgres'
+		template = "[:#{datasource_name} \\dt :]"
 	end
 
 	@page = {}
