@@ -103,11 +103,3 @@ def parse_ginger_doc(doc)
 
 	transform.apply(result)
 end
-
-# begin
-# 	puts parse_ginger_doc("[:$addresses (id=addreses) :]").inspect
-# 	puts parse_ginger_doc("[:peopledata (id=addreses) select * from people :]").inspect
-# 	puts parse_ginger_doc("[:{:ds:} (id=addreses) select * from people :]").inspect
-# rescue Object => e
-# 	puts e.cause.ascii_tree
-# end
