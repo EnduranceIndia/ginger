@@ -122,6 +122,10 @@ get '/page/:page_id/edit' do
 	haml :edit_page
 end
 
+get '/page/:page_id/' do
+	return redirect to("/page/#{params[:page_id]}") 
+end
+
 get '/page/:page_id' do
 	stored_data = {
 		:request_params => {
