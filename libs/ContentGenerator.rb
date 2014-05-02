@@ -225,6 +225,8 @@ class ContentGenerator
 	end
 
 	def parameters_to_query(parameters, connection)
+		request_params = stored_data[:request_params]
+		
 		query = parameters[:data][:query].collect {|item|
 			if item[:text]
 				item[:text]
