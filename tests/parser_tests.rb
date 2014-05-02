@@ -141,4 +141,14 @@ describe 'Ginger parser tests' do
 
 		validate_conditions(rules[0], 'b', %w(> 10 < 20), %w(bold underline))
 	end
+
+	it 'identifies a variable name specified as a data source' do
+		result = parse("[:$addresses (id=addreses) :]")
+		result[0][:data][:data_variable].should eq('addresses')
+	end
+
+	it 'identifies a variable name that contains the name of a data source' do
+		result = parse("[:{:ds:} (id=addreses) select * from people :]")
+		result[0][:data][:datasource_variable].should eq('ds')
+	end
 end
