@@ -5,7 +5,11 @@ require 'mysql'
 
 class DatabaseConnection
 	def initialize(adapter, datasource)
-		@connection = Sequel.connect(:adapter => adapter, :host => datasource['hostname'], :username => datasource['username'], :password => datasource['password'], :database => datasource['database'])
+		if datasource['type'] == 'sqlite'
+			@connection = Sequel.sqlite(CONF['base_files_directory'] + '/' + datasource['filename'])
+		else
+			@connection = Sequel.connect(:adapter => adapter, :host => datasource['hostname'], :username => datasource['username'], :password => datasource['password'], :database => datasource['database'])
+		end
 	end
 
 	def escape(value)

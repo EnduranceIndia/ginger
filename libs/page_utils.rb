@@ -136,6 +136,7 @@ class FlatFileStore
 	end
 
 	def list
+		return [] if !File.exists?("#{get_conf['base_files_directory']}/pages")
 		Dir.entries("#{get_conf['base_files_directory']}/pages").reject {|file| file.index('.') == 0}
 	end
 

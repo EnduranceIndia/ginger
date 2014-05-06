@@ -331,7 +331,7 @@ h2. Forms
 Forms allow the viewer of the page to supply values with which queries on the page may be parameterized. They are ideally declared at the top of the page. They must be described using the following syntax:
 
 <pre>
-form. <:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :> <:input:submit:></pre>
+form. <:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :></pre>
 
 A form declaration must be on a single line. The submit button at the end of the form declaration is at this time essential.
 
@@ -347,7 +347,7 @@ A dropdown will b displayed showing the options US, India, China, with correspon
 A dropdown can also be specified in terms of a database query, like so:
 
 <pre>
-[:peopledata (name=name title=Name option_column=name value_column=id) select * from people :]
+[:peopledata:dropdown (name=name title=Name option_column=name value_column=id) select * from people :]
 </pre>
 
 In this example, the name column of the result is what will be displayed in the dropdown box, and the corresponding id column is the value sent back for this field when the query button is pressed.
@@ -355,12 +355,7 @@ In this example, the name column of the result is what will be displayed in the 
 h4. Textbox
 
 <pre>
-<:input:text (name=city) :></pre>
-
-h4. Submit button
-
-<pre>
-<:input:submit:></pre>
+<:input:text (name=city title=City) :></pre>
 
 h2. Text expressions
 
@@ -391,13 +386,13 @@ For example:
 
 <pre>
 <:sidebyside:>
-[:peopledata select * from people {: where city='::city::'' :}]
+[:peopledata select * from people {: where city='::city::'' :} :]
 
 <:sidebyside:>
-[:peopledata select * from people {:city? where age > 20 :}]
+[:peopledata select * from people {:city? where age > 20 :} :]
 
 <:sidebyside:>
-[:peopledata select * from people {:city? where state='::state::' :}]
+[:peopledata select * from people {:city? where state='::state::' :} :]
 
 <:sidebyside:end:></pre>
 
@@ -412,9 +407,9 @@ The id column has been turned into a link using textile syntax, which is "Title"
 
 The syntax for specifying a condition and associated style looks like this: when column > value then style
 
-In the conditions, use the following comparisons:
-* Numerical comparisons: >, <, >=, <=, =, !=
-* Text comparisons: gt, ge, lt, le, eq, ne
+These operators work on both numbers and words values: >, <, >=, <=, =, !=
+
+Numbers are compare ordinally, and words are compared in alphabetical order.
 
 Supported styles:
 * bold, italics underline. Just use them like in the above example.

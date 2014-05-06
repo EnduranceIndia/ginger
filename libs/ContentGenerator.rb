@@ -296,7 +296,19 @@ class ContentGenerator
 		
 		conf = get_conf
 
-		if parameters[:data][:datasource]
+		if parameters[:data][:data_variable]
+			data_variable = parameters[:data][:data_variable].to_s
+
+			if stored_data[:user_variables][data_variable]
+				data = stored_data[:user_variables][data_variable]
+			elsif stored_data[:request_params][data_variable]
+				data = stored_data[:request_params][data_variable]
+			else
+				return text('Variable not set')
+			end
+
+			cols, resultset = data.take(1), data.drop(1)
+		else
 			if parameters[:data][:datasource_variable]
 				datasource_name = stored_data[:user_variables][parameters[:data][:datasource_variable].to_s]
 			else
@@ -335,21 +347,9 @@ class ContentGenerator
 
 				return text(error)
 			end
-		elsif parameters[:data][:data_variable]
-			data_variable = parameters[:data][:data_variable].to_s
-
-			if stored_data[:user_variables][data_variable]
-				data = stored_data[:user_variables][data_variable]
-			elsif stored_data[:request_params][data_variable]
-				data = stored_data[:request_params][data_variable]
-			else
-				return text('Variable not set')
-			end
-
-			cols, resultset = data.take(1), data.drop(1)
-		else
-			return text("[Neither datasource nor reference found]")
 		end
+
+		return text("[Neither datasource nor reference found]") if resultset == nil
 
 		if template_params.has_key?('store')
 			stored_data[:user_variables][template_params['store'].to_s] = resultset
