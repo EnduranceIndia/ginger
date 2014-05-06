@@ -93,7 +93,7 @@ get '/explore/:datasource' do
 
 	template = "h3. List of tables\n"
 
-	template += db.queryables.sort.collect {|table|
+	template += db.queryables.collect {|table|
 		"* \"#{table.to_s}\":/explore/#{datasource_name}/#{table.to_s}"
 	}.join("\n")
 
