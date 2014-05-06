@@ -87,16 +87,19 @@ get '/explore/:datasource' do
 	template = nil
 
 	datasource_name = params['datasource']
-	database_type = get_conf['datasources'][datasource_name]['type']
+	datasource = get_conf['datasources'][datasource_name]
 	
-	if database_type == 'mysql'
-		template = "[:#{datasource_name} when Tables_in_bllinvoices then format:'\"%%\":/explore/#{datasource_name}/%%' show tables; :]"
-	elsif database_type == 'postgres'
-		template = "[:#{datasource_name} \\dt :]"
-	end
+	db = connect(datasource)
 
-	@page = {}
-	@page['content'] = template_to_html(template, params)
+	template = "h3. List of tables\n"
+
+	template += db.queryables.sort.collect {|table|
+		"* \"#{table.to_s}\":/explore/#{datasource_name}/#{table.to_s}"
+	}.join("\n")
+
+	@page = {
+		'content' => template_to_html(template, {})
+	}
 
 	haml :show_page
 end
@@ -105,16 +108,19 @@ get '/explore/:datasource/:table' do
 	template = nil
 
 	datasource_name = params['datasource']
-	database_type = get_conf['datasources'][datasource_name]['type']
+	datasource = get_conf['datasources'][datasource_name]
 	
-	if database_type == 'mysql'
-		template = "[:#{params['datasource']} desc #{params['table']}; :]"
-	elsif database_type == 'psql'
-		template = "[:#{params['datasource']} \d #{params['table']} :]"
-	end
+	db = connect(datasource)
 
-	@page = {}
-	@page['content'] = template_to_html(template, params)
+	template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
+
+	template += db.fields_for(params[:table]).collect {|field|
+		"|#{field[:name]}|#{field[:db_type]}|#{field[:primary_key.to_s]}|#{field[:allow_null]}|"
+	}.join("\n")
+
+	@page = {
+		'content' => template_to_html(template, {})
+	}
 
 	haml :show_page
 end

@@ -28,6 +28,32 @@ class DatabaseConnection
 
 		[cols, table]
 	end
+
+	def queryables
+		tables = @connection.tables.collect {|table| table.to_s }.sort
+		views = @connection.views.collect {|view| view.to_s }
+
+		views.each {|view|
+			table = /_(\w+)/.match(view)[1]
+			index = table ? tables.index(table) : nil
+			tables[index] = view if index
+		}
+
+		return tables
+	end
+
+	def fields_for(queryable)
+		@connection.schema(queryable).collect {|column|
+			name, type_info = column
+
+			{
+				name: name,
+				db_type: type_info[:db_type],
+				primary_key: type_info[:primary_key],
+				allow_null: type_info[:allow_null]
+			}
+		}
+	end
 end
 
 def connect(datasource, database=nil)
