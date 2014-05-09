@@ -128,11 +128,16 @@ describe 'wiki page:' do
 	end
 
 	context "Queries" do
-		it 'can contain variables' do
+		it 'can contain variables containing data declared without quotes' do
 			execute_page "<:firstname=Jeff:>[:localfile select lastname from people where firstname='::firstname::' :]"
 			page_should_contain 'Barman'
 			page_should_not_contain 'Falwell'
 			page_should_not_contain 'Tackwell'
+		end
+
+		it 'can contain variables containing data declared with quotes' do
+			execute_page "<:clause=\"from people where firstname='Jeff'\":>[:localfile select lastname :clause: :]"
+			page_should_contain 'Barman'
 		end
 
 		it 'run without the marked clause if the variable in the clause is not defined.' do

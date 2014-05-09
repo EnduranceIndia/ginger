@@ -233,7 +233,7 @@ class ContentGenerator
 			elsif item[:variable]
 				variable_name = item[:variable]	.to_s
 
-				if stored_data[:request_params].has_key?(variable_name)
+				if stored_data[:user_variables].has_key?(variable_name)
 					strip_quotes(stored_data[:user_variables][variable_name] || "")
 				elsif request_params.has_key?(variable_name)
 					strip_quotes(request_params[variable_name][:value] || "")
