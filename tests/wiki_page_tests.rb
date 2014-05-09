@@ -1,6 +1,6 @@
 ENV['RACK_ENV'] = 'test'
 
-require '../index.rb'
+require File.dirname(File.dirname(__FILE__)) + '/index.rb'
 require 'rspec'
 require 'rack/test'
 
