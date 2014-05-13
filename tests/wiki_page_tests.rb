@@ -195,7 +195,7 @@ describe 'wiki page:' do
 		
 		it 'can be a bar graph' do
 			execute_page "[:localfile:bar select firstname, 1 from people :]"
-			page_should_contain('google.visualization.BarChart')
+			page_should_contain('google.visualization.ColumnChart')
 		end
 
 		it 'can be a line graph' do

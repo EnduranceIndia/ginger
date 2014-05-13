@@ -347,7 +347,7 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	xtitle = strip_quotes(xtitle)
 	ytitle = strip_quotes(ytitle)
 
-	js_object_name = {:line => 'LineChart', :bar => 'BarChart', :pie => 'PieChart'}[chart_type]
+	js_object_name = {:line => 'LineChart', :bar => 'ColumnChart', :pie => 'PieChart'}[chart_type]
 
 	if js_object_name == nil
 		return "[Chart type not recognized.]"
@@ -367,7 +367,7 @@ def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, wi
 	options += " height: '#{height}'," if height
 	options += " width: '#{width}'," if width
 
-	options += "colors: ['#D3D3D3'], vAxis: {title: '#{ytitle}'}, hAxis: {title: '#{xtitle}'}" if [:bar, :line].include?(chart_type)
+	options += "colors: ['#D3D3D3'], vAxis: {title: '#{ytitle}'}, hAxis: {title: '#{xtitle}'}," if [:bar, :line].include?(chart_type)
 
 	options += "};"
 
