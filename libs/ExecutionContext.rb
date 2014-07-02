@@ -81,7 +81,12 @@ class ExecutionContext
 			connection.query_table(query_info[:query], *query_info[:params])
 		}
 
-		@last_result = results
+		@last_result = []
+
+		if results.length > 0
+			@last_result << results[0][0]
+			@last_result << results.collect {|result| result[1].inject(:+) }
+		end
 	end
 
 	def _binding

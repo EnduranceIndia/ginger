@@ -11,4 +11,5 @@ config_development.rb
 config_test.rb
 *.sqlite
 .ruby-version
-tests/*.sqlite
+*.sqlite
+*.sqlite-*

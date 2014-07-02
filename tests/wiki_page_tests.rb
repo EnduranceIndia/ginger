@@ -39,15 +39,15 @@ describe 'wiki page:' do
 	end
 
 	def create_page(content, title='Test', page_path='test')
-		post "/page/#{page_path}", :title => title, :content => content
-		expect(last_response.redirect?).to be_true
+		result = post("/page/#{page_path}", :title => title, :content => content)
+		expect(last_response.redirect?).to be_truthy
 	end
 
 	def execute_page(content, title='Test', page_path='test')
 		create_page(content, title, page_path)
 
 		get "/page/#{page_path}"
-		expect(last_response.ok?).to be_true
+		expect(last_response.ok?).to be_truthy
 	end
 
 	def page_should_contain(value)
@@ -83,7 +83,7 @@ describe 'wiki page:' do
 			expect(deletethis_record).not_to be_nil
 
 			post("/page/#{page_path}", :delete_page => 'true', :submit => 'Delete')
-			expect(last_response.redirect?).to be_true
+			expect(last_response.redirect?).to be_truthy
 
 			deletethis_record = query_ginger {|db| db.fetch('select * from pages').all }.find {|record| record[:page_id] == page_path}
 			expect(deletethis_record).to be_nil
@@ -187,7 +187,7 @@ describe 'wiki page:' do
 		end
 	end
 
-	context "Display format" do
+	context "Graphical display" do
 		it 'can be a pie chart' do
 			execute_page "[:localfile:pie select firstname, 1 from people :]"
 			page_should_contain('google.visualization.PieChart')
@@ -210,6 +210,17 @@ describe 'wiki page:' do
 			page_should_contain("vAxis: {title: 'y test'}")
 			page_should_contain("hAxis: {title: 'x test'}")
 		end
+
+		# it 'can be rendered side by side' do
+		# 	execute_page "[:localfile:pie (autoarrange) select firstname, 1 from people :]\n\n[:localfile:pie (autoarrange) select lastname, 1 from people :]\n<:sidebyside:end:>"
+
+		# 	page_should_contain('google.visualization.PieChart')
+		# 	page_should_contain('Jeff')
+		# 	page_should_contain('Barman')
+
+		# 	page_should_contain('float: left')
+		# 	page_should_contain('clear: both')
+		# end
 	end
 
 	context "Forms" do
@@ -242,13 +253,21 @@ describe 'wiki page:' do
 	end
 
 	context "Side by side formatting" do
-		it "displays tables with the float:left style" do
+		it "displays tables with the float:left style using sidebyside syntax" do
 			execute_page "<:sidebyside:>\n[:localfile select firstname from people :]\n\n<:sidebyside:>\n[:localfile select firstname from people :]\n<:sidebyside:end:>"
 			page_should_contain %w(table style firstname Jeff Tim June)
 			page_should_contain 'float:left'
 			page_should_contain 'clear: both'
 			page_should_not_contain '\|'
 		end
+
+		# it "displays tables with the float:left style using autoarrange syntax" do
+		# 	execute_page "[:localfile (autoarrange) select firstname from people :]\n\n[:localfile (autoarrange) select firstname from people :]\n<:sidebyside:end:>"
+		# 	page_should_contain %w(table style firstname Jeff Tim June)
+		# 	page_should_contain 'float:left'
+		# 	page_should_contain 'clear: both'
+		# 	page_should_not_contain '\|'
+		# end
 	end
 
 	context "Conditional formatting" do

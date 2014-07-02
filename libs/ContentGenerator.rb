@@ -307,7 +307,7 @@ class ContentGenerator
 				return text('Variable not set')
 			end
 
-			cols, resultset = data.take(1), data.drop(1)
+			cols, resultset = data[0], data.drop(1).flatten(1)
 		else
 			if parameters[:data][:datasource_variable]
 				datasource_name = stored_data[:user_variables][parameters[:data][:datasource_variable].to_s]
@@ -336,6 +336,7 @@ class ContentGenerator
 			
 			begin
 				cols, resultset = connection.query_table(query)
+				raise cols.inspect + " => " + resultset.inspect if parameters[:data][:data_variable]
 			rescue Object => e
 				puts "Error running query #{query}"
 				puts "Exception message: #{e.message}"
@@ -402,6 +403,8 @@ class ContentGenerator
 		elsif ['line', 'bar', 'pie'].include?(parameters[:data][:format].to_s)
 			text(emit_chart(parameters[:data][:format].to_s.to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i))
 		else
+			#raise cols.inspect + " => " + resultset.inspect if parameters[:data][:data_variable]
+
 			if resultset.length == 1 && resultset[0].length == 1
 				text((resultset[0][0] || "nil").to_s)
 			else
