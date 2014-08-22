@@ -3,6 +3,8 @@ require 'sequel'
 require 'pg'
 require 'mysql'
 
+require 'time'
+
 class DatabaseConnection
 	def initialize(adapter, datasource)
 		if datasource['type'] == 'sqlite'
@@ -21,7 +23,16 @@ class DatabaseConnection
 
 		cols = result.columns
 		table = result.collect {|row|
-			cols.collect {|name| row[name] }
+			cols.collect {|name|
+				value = row[name]
+
+				value = value.to_time if value.is_a?(DateTime)
+				if value.is_a?(Time)
+					value = value.gmtime.strftime("%Y-%m-%d %H:%M:%S")
+				end
+
+				value
+			}
 		}
 
 		cols = cols.collect {|name| name.to_s }
