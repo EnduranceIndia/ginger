@@ -45,7 +45,13 @@ class DatabaseConnection
 		views = @connection.views.collect {|view| view.to_s }
 
 		views.each {|view|
-			table = /_(\w+)/.match(view)[1]
+			m = /_(\w+)/.match(view)
+			if m && m.length > 1
+				table = /_(\w+)/.match(view)[1]
+			else
+				table = nil
+			end
+
 			index = table ? tables.index(table) : nil
 			tables[index] = view if index
 		}
