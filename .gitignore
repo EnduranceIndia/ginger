@@ -6,8 +6,7 @@ config.ru
 Capfile
 deploy*
 unicorn.rb
-config_production.rb
-config_development.rb
+config_*
 config_test.rb
 *.sqlite
 .ruby-version
