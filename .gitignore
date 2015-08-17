@@ -1,7 +1,6 @@
 .DS_Store
 Gemfile.lock
 files/*
-config.ru
 *.swp
 Capfile
 deploy*
