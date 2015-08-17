@@ -20,425 +20,427 @@ require 'redcloth'
 
 base_files_directory = get_conf['base_files_directory']
 
-def template_to_html(content, params)
-	convertors = []
+class Ginger
+	def template_to_html(content, params)
+		convertors = []
 
-	convertors = [
-		proc {|content| parse_ginger_doc(content) },
-		proc {|content| HTMLGenerator.new(params).generate(content) },
-		proc {|content|
-			redcloth = RedCloth.new(content)
-			redcloth.extend FormTag
-			redcloth.to_html(content)
+		convertors = [
+			proc {|content| parse_ginger_doc(content) },
+			proc {|content| HTMLGenerator.new(params).generate(content) },
+			proc {|content|
+				redcloth = RedCloth.new(content)
+				redcloth.extend FormTag
+				redcloth.to_html(content)
+			}
+		]
+
+		new_content = content
+
+		convertors.each {|convertor|
+			new_content = convertor.call(new_content)
 		}
-	]
 
-	new_content = content
+		return new_content
+	end
 
-	convertors.each {|convertor|
-		new_content = convertor.call(new_content)
-	}
+	def store_param_data(stored_data, template_params, params, name, title, type)
+		param_name = "p_#{name}"
 
-	return new_content
-end
-
-def store_param_data(stored_data, template_params, params, name, title, type)
-	param_name = "p_#{name}"
-
-	if params.has_key?(param_name) && params[param_name].length > 0
-		stored_data[:request_params][name] = {:value => params[param_name], :type => type}
-	else
-		if (template_params['required'].to_s || "").downcase == 'true'
-			raise StopEvaluation.new(title)
+		if params.has_key?(param_name) && params[param_name].length > 0
+			stored_data[:request_params][name] = {:value => params[param_name], :type => type}
+		else
+			if (template_params['required'].to_s || "").downcase == 'true'
+				raise StopEvaluation.new(title)
+			end
 		end
 	end
-end
 
-def add_cache_request(url)
-	return if url.index('cache=true') != nil
-	return url + '&cache=true' if url.index('?') != nil
-	return url + '?cache=true'
-end
+	def add_cache_request(url)
+		return if url.index('cache=true') != nil
+		return url + '&cache=true' if url.index('?') != nil
+		return url + '?cache=true'
+	end
 
-def remove_cache_request(url, cache_switch)
-	return "" if url == nil
-	clean_url = url.gsub(/&cache=#{cache_switch}/, "")
-	clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, "")
-	clean_url = clean_url.gsub(/cache=#{cache_switch}/, "") if clean_url.index("cache=#{cache_switch}") == 0
-	clean_url = clean_url.gsub(/\?\s*$/, "")
+	def remove_cache_request(url, cache_switch)
+		return "" if url == nil
+		clean_url = url.gsub(/&cache=#{cache_switch}/, "")
+		clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, "")
+		clean_url = clean_url.gsub(/cache=#{cache_switch}/, "") if clean_url.index("cache=#{cache_switch}") == 0
+		clean_url = clean_url.gsub(/\?\s*$/, "")
 
-	return clean_url
-end
+		return clean_url
+	end
 
-get '/' do
-	@list_of_pages = page.list
-	haml :page_list
-end
+	get '/' do
+		@list_of_pages = page.list
+		haml :page_list
+	end
 
-get '/explore' do
-	@page = {
-		'content' => "<h2>Datasources</h2>\n<ul>" + get_conf['datasources'].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + "</ul>"
-	}
-
-	haml :show_page
-end
-
-get '/explore/:datasource' do
-	template = nil
-
-	datasource_name = params['datasource']
-	datasource = get_conf['datasources'][datasource_name]
-	
-	db = connect(datasource)
-
-	template = "h3. List of tables\n"
-
-	template += db.queryables.collect {|table|
-		"* \"#{table.to_s}\":/explore/#{datasource_name}/#{table.to_s}"
-	}.join("\n")
-
-	@page = {
-		'content' => template_to_html(template, {})
-	}
-
-	haml :show_page
-end
-
-get '/explore/:datasource/:table' do
-	template = nil
-
-	datasource_name = params['datasource']
-	datasource = get_conf['datasources'][datasource_name]
-	
-	db = connect(datasource)
-
-	template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
-
-	template += db.fields_for(params[:table]).collect {|field|
-		"|#{field[:name]}|#{field[:db_type]}|#{field[:primary_key.to_s]}|#{field[:allow_null]}|"
-	}.join("\n")
-
-	@page = {
-		'content' => template_to_html(template, {})
-	}
-
-	haml :show_page
-end
-
-get '/page/:page_id/edit' do
-	@page_id = params[:page_id]
-	@page = nil
-
-	@page_title = "Edit page"
-
-	@page = page.load(@page_id)
-
-	haml :edit_page
-end
-
-get '/page/:page_id/' do
-	return redirect to("/page/#{params[:page_id]}") 
-end
-
-get '/page/:page_id' do
-	stored_data = {
-		:request_params => {
-		},
-		:user_variables => {
+	get '/explore' do
+		@page = {
+			'content' => "<h2>Datasources</h2>\n<ul>" + get_conf['datasources'].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + "</ul>"
 		}
-	}
-
-	@page_id = params[:page_id]
-
-	@page = page.load(@page_id)
-
-	if @page
-		uri = URI.parse(request.url)
-
-		query_params = remove_cache_request(uri.query, true) || ""
-		last_modified_time, cached_page = get_cached_page(@page_id, query_params)
-
-		if params['id']
-			parse_tree = parse_ginger_doc(@page['content'])
-			content_type 'text/plain'
-
-			return CSVGenerator.new(params).generate(parse_tree)
-		elsif (params['cache'] != 'true' && cached_page)
-			@page['content'] = cached_page
-			cached_time = Time.now - last_modified_time
-
-			minute = 60
-			hour = 60 * minute
-			day = 24 * hour
-
-			if cached_time / minute < 2
-				@cached_time = "#{cached_time.round} seconds"
-			elsif cached_time / hour < 2
-				@cached_time = "#{(cached_time / minute).round} minutes"
-			elsif cached_time / day < 2
-				@cached_timecached_time = "#{(cached_time / hour).round} hours"
-			else
-				@cached_timecached_time = "#{(cached_time / day).round} days"
-			end
-
-			@cached_time = "This page was cached #{@cached_time} ago."
-		else
-			begin
-				@page['content'] = template_to_html(@page['content'], params)
-
-				if params['cache'] == 'true'
-					write_cached_page(@page_id, query_params, @page['content'])
-					return redirect to(remove_cache_request(request.url, true)) 
-				end
-			rescue StopEvaluation => e
-				@page['content'] = e.message
-			end
-		end
 
 		haml :show_page
-	else
-		@page_title = "New page"
-		@page = {}
+	end
+
+	get '/explore/:datasource' do
+		template = nil
+
+		datasource_name = params['datasource']
+		datasource = get_conf['datasources'][datasource_name]
+
+		db = connect(datasource)
+
+		template = "h3. List of tables\n"
+
+		template += db.queryables.collect {|table|
+			"* \"#{table.to_s}\":/explore/#{datasource_name}/#{table.to_s}"
+		}.join("\n")
+
+		@page = {
+			'content' => template_to_html(template, {})
+		}
+
+		haml :show_page
+	end
+
+	get '/explore/:datasource/:table' do
+		template = nil
+
+		datasource_name = params['datasource']
+		datasource = get_conf['datasources'][datasource_name]
+
+		db = connect(datasource)
+
+		template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
+
+		template += db.fields_for(params[:table]).collect {|field|
+			"|#{field[:name]}|#{field[:db_type]}|#{field[:primary_key.to_s]}|#{field[:allow_null]}|"
+		}.join("\n")
+
+		@page = {
+			'content' => template_to_html(template, {})
+		}
+
+		haml :show_page
+	end
+
+	get '/page/:page_id/edit' do
+		@page_id = params[:page_id]
+		@page = nil
+
+		@page_title = "Edit page"
+
+		@page = page.load(@page_id)
+
 		haml :edit_page
 	end
-end
 
-post '/page/:page_id' do
-	if params['delete_page'] == 'true'
-		page.delete(params[:page_id])
-		return redirect to("/")
+	get '/page/:page_id/' do
+		return redirect to("/page/#{params[:page_id]}")
 	end
 
-	if params['destroy_cache'] == 'true'
-		destroy_cache(params[:page_id])
-		return redirect to(request.url)
+	get '/page/:page_id' do
+		stored_data = {
+			:request_params => {
+			},
+			:user_variables => {
+			}
+		}
+
+		@page_id = params[:page_id]
+
+		@page = page.load(@page_id)
+
+		if @page
+			uri = URI.parse(request.url)
+
+			query_params = remove_cache_request(uri.query, true) || ""
+			last_modified_time, cached_page = get_cached_page(@page_id, query_params)
+
+			if params['id']
+				parse_tree = parse_ginger_doc(@page['content'])
+				content_type 'text/plain'
+
+				return CSVGenerator.new(params).generate(parse_tree)
+			elsif (params['cache'] != 'true' && cached_page)
+				@page['content'] = cached_page
+				cached_time = Time.now - last_modified_time
+
+				minute = 60
+				hour = 60 * minute
+				day = 24 * hour
+
+				if cached_time / minute < 2
+					@cached_time = "#{cached_time.round} seconds"
+				elsif cached_time / hour < 2
+					@cached_time = "#{(cached_time / minute).round} minutes"
+				elsif cached_time / day < 2
+					@cached_timecached_time = "#{(cached_time / hour).round} hours"
+				else
+					@cached_timecached_time = "#{(cached_time / day).round} days"
+				end
+
+				@cached_time = "This page was cached #{@cached_time} ago."
+			else
+				begin
+					@page['content'] = template_to_html(@page['content'], params)
+
+					if params['cache'] == 'true'
+						write_cached_page(@page_id, query_params, @page['content'])
+						return redirect to(remove_cache_request(request.url, true))
+					end
+				rescue StopEvaluation => e
+					@page['content'] = e.message
+				end
+			end
+
+			haml :show_page
+		else
+			@page_title = "New page"
+			@page = {}
+			haml :edit_page
+		end
 	end
 
-	content = {
-		'title' => params[:title],
-		'content' => params[:content]
-	}
+	post '/page/:page_id' do
+		if params['delete_page'] == 'true'
+			page.delete(params[:page_id])
+			return redirect to("/")
+		end
 
-	page_id = params[:page_id]
+		if params['destroy_cache'] == 'true'
+			destroy_cache(params[:page_id])
+			return redirect to(request.url)
+		end
 
-	page.save(page_id, content)
+		content = {
+			'title' => params[:title],
+			'content' => params[:content]
+		}
 
-	redirect to("/page/#{page_id}")
-end
+		page_id = params[:page_id]
 
-get '/help' do
-	help_text = <<-END
-h2. Variables
+		page.save(page_id, content)
 
-Set the value of "var" to "b":
+		redirect to("/page/#{page_id}")
+	end
 
-<pre>
-<: var=b :></pre>
+	get '/help' do
+		help_text = <<-END
+	h2. Variables
 
-Display the value of "var":
+	Set the value of "var" to "b":
 
-<pre>
-<:var:></pre>
+	<pre>
+	<: var=b :></pre>
 
-h2. Case statement
+	Display the value of "var":
 
-|_. Value of test "var" |_. Corresponding value of "var2" |
-| a | 1 |
-| b | 2 |
-| c | 3 |
+	<pre>
+	<:var:></pre>
 
-<br>
+	h2. Case statement
 
-<pre>
-<: var=b :>
-<:case:var:var2 (options=a,b,c values=1,2,3)</pre>
+	|_. Value of test "var" |_. Corresponding value of "var2" |
+	| a | 1 |
+	| b | 2 |
+	| c | 3 |
 
-The test may refer to either a variable or a form parameter. If a variable and a form parameter exist by the same name, the variable is given preference. You can display the value of var2, which would be 2 in this case, using:
+	<br>
 
-<pre>
-<:var2:></pre>
+	<pre>
+	<: var=b :>
+	<:case:var:var2 (options=a,b,c values=1,2,3)</pre>
 
-h2. Tabular data
+	The test may refer to either a variable or a form parameter. If a variable and a form parameter exist by the same name, the variable is given preference. You can display the value of var2, which would be 2 in this case, using:
 
-In the statement below, peopledata is the data source being queried. The query "select * from people" is executed against this data source, and the result is displayed in tabular format. Tabular format is the default when the result is multiple rows or columns.
+	<pre>
+	<:var2:></pre>
 
-<pre>
-[:peopledata select * from people :]</pre>
+	h2. Tabular data
 
-In the statement below, the result has a single row and column, so the output will be rendered as plain text without any table markup.
+	In the statement below, peopledata is the data source being queried. The query "select * from people" is executed against this data source, and the result is displayed in tabular format. Tabular format is the default when the result is multiple rows or columns.
 
-<pre>
-[:peopledata select count(*) from people :]</pre>
+	<pre>
+	[:peopledata select * from people :]</pre>
 
-To explicitly choose plain text:
+	In the statement below, the result has a single row and column, so the output will be rendered as plain text without any table markup.
 
-<pre>
-[:peopledata:scalar select count(*) from people :]
-</pre>
+	<pre>
+	[:peopledata select count(*) from people :]</pre>
 
-and for tabular output:
+	To explicitly choose plain text:
 
-<pre>
-[:peopledata:table select count(*) from people :]
-</pre>
+	<pre>
+	[:peopledata:scalar select count(*) from people :]
+	</pre>
 
-h2. Query expressions
+	and for tabular output:
 
-<pre>
-[:peopledata select * from people {: where city='::city::' :}]</pre>
+	<pre>
+	[:peopledata:table select count(*) from people :]
+	</pre>
 
-The where clause will be added only if the city variable exists. The value of city will be escaped, because it is enclosed in double colons. Values are not escaped when enclosed in a single colons, like so:
+	h2. Query expressions
 
-<pre>
-[:peopledata select * from people {: where age > :age: :}]</pre>
+	<pre>
+	[:peopledata select * from people {: where city='::city::' :}]</pre>
 
-In the statement below, the where clauses will be added if city has been specified as a form parameter or variable.
+	The where clause will be added only if the city variable exists. The value of city will be escaped, because it is enclosed in double colons. Values are not escaped when enclosed in a single colons, like so:
 
-<pre>
-[:peopledata select * from people {:city? where 1=2 :}]</pre>
+	<pre>
+	[:peopledata select * from people {: where age > :age: :}]</pre>
 
-To specify a datasource that is contained in a variable:
+	In the statement below, the where clauses will be added if city has been specified as a form parameter or variable.
 
-<pre>
-<:dsname=employee_ds:>
-[:{:dsname:} select * from people :]</pre>
+	<pre>
+	[:peopledata select * from people {:city? where 1=2 :}]</pre>
 
-This is useful when the data source needs to be changed based on some user specified input.
+	To specify a datasource that is contained in a variable:
 
-A case statement may be used to set a variable based on the value of the input, and that variable may be used as a data source:
+	<pre>
+	<:dsname=employee_ds:>
+	[:{:dsname:} select * from people :]</pre>
 
-<pre>
-<:case:input:dsname (options=1,2,3 dsname=a,b,c) :>
-[:{:dsname:} select * from people :]</pre>
+	This is useful when the data source needs to be changed based on some user specified input.
 
-h2. Graphs
+	A case statement may be used to set a variable based on the value of the input, and that variable may be used as a data source:
 
-<pre>
-[:peopledata:pie select city, count(*) from people group by city :]</pre>
+	<pre>
+	<:case:input:dsname (options=1,2,3 dsname=a,b,c) :>
+	[:{:dsname:} select * from people :]</pre>
 
-The result set would look something like this:
+	h2. Graphs
 
-|_. Title |_. Value |
-| Mumbai |  10 |
-| Delhi | 20 |
-| Bangalore | 30 |
+	<pre>
+	[:peopledata:pie select city, count(*) from people group by city :]</pre>
 
-<br>
+	The result set would look something like this:
 
-In each row, the first column contains the title, and the second column contains corresponding value.
+	|_. Title |_. Value |
+	| Mumbai |  10 |
+	| Delhi | 20 |
+	| Bangalore | 30 |
 
-<pre>
-[:peopledata:bar (xtitle='Some title' ytitle='Some other title') select city, count(*) from people group by city :]</pre>
+	<br>
 
-Bar and line charts are similar. xtitle and ytitle refer to the captions on the x and y axis, but are not compulsory.
+	In each row, the first column contains the title, and the second column contains corresponding value.
 
-h2. Forms
+	<pre>
+	[:peopledata:bar (xtitle='Some title' ytitle='Some other title') select city, count(*) from people group by city :]</pre>
 
-Forms allow the viewer of the page to supply values with which queries on the page may be parameterized. They are ideally declared at the top of the page. They must be described using the following syntax:
+	Bar and line charts are similar. xtitle and ytitle refer to the captions on the x and y axis, but are not compulsory.
 
-<pre>
-form. <:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :></pre>
+	h2. Forms
 
-A form declaration must be on a single line. The submit button at the end of the form declaration is at this time essential.
+	Forms allow the viewer of the page to supply values with which queries on the page may be parameterized. They are ideally declared at the top of the page. They must be described using the following syntax:
 
-Here are the currently supported form fields.
+	<pre>
+	form. <:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :></pre>
 
-h4. Dropdown
+	A form declaration must be on a single line. The submit button at the end of the form declaration is at this time essential.
 
-<pre>
-<:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :></pre>
+	Here are the currently supported form fields.
 
-A dropdown will b displayed showing the options US, India, China, with corresponding values us, india and cn. When supplied by the user, they will be available in a variable named "country". The title of the dropdown will be displayed as "Country".
+	h4. Dropdown
 
-A dropdown can also be specified in terms of a database query, like so:
+	<pre>
+	<:input:dropdown (name=country options=US,India,China values=us,india,cn title=Country) :></pre>
 
-<pre>
-[:peopledata:dropdown (name=name title=Name option_column=name value_column=id) select * from people :]
-</pre>
+	A dropdown will b displayed showing the options US, India, China, with corresponding values us, india and cn. When supplied by the user, they will be available in a variable named "country". The title of the dropdown will be displayed as "Country".
 
-In this example, the name column of the result is what will be displayed in the dropdown box, and the corresponding id column is the value sent back for this field when the query button is pressed.
+	A dropdown can also be specified in terms of a database query, like so:
 
-h4. Textbox
+	<pre>
+	[:peopledata:dropdown (name=name title=Name option_column=name value_column=id) select * from people :]
+	</pre>
 
-<pre>
-<:input:text (name=city title=City) :></pre>
+	In this example, the name column of the result is what will be displayed in the dropdown box, and the corresponding id column is the value sent back for this field when the query button is pressed.
 
-h2. Text expressions
+	h4. Textbox
 
-<pre>
-<: city=mumbai :>
-{: display this if :city: is specified :}</pre>
+	<pre>
+	<:input:text (name=city title=City) :></pre>
 
-This displays "display this if mumbai is specified" given that the value of "city" is "mumbai". But if no such variable exists, the entire expression is rendered as an empty string. "city" may also refer to a form parameter.
+	h2. Text expressions
 
-<pre>
-{:city? display this if a city is specified :}</pre>
+	<pre>
+	<: city=mumbai :>
+	{: display this if :city: is specified :}</pre>
 
-Displays "display this if a city is specified" if a form parameter or variable named city exists. If not, the entire expression is rendered as an empty string.
+	This displays "display this if mumbai is specified" given that the value of "city" is "mumbai". But if no such variable exists, the entire expression is rendered as an empty string. "city" may also refer to a form parameter.
 
-h2. Side-by-side panel formatting for tables
+	<pre>
+	{:city? display this if a city is specified :}</pre>
 
-On the line before each table, put the following tag:
+	Displays "display this if a city is specified" if a form parameter or variable named city exists. If not, the entire expression is rendered as an empty string.
 
-<pre>
-<:sidebyside:></pre>
+	h2. Side-by-side panel formatting for tables
 
-After all the side-by-side tables, put this tag:
+	On the line before each table, put the following tag:
 
-<pre>
-<:sidebyside:end></pre>
+	<pre>
+	<:sidebyside:></pre>
 
-For example:
+	After all the side-by-side tables, put this tag:
 
-<pre>
-<:sidebyside:>
-[:peopledata select * from people {: where city='::city::'' :} :]
+	<pre>
+	<:sidebyside:end></pre>
 
-<:sidebyside:>
-[:peopledata select * from people {:city? where age > 20 :} :]
+	For example:
 
-<:sidebyside:>
-[:peopledata select * from people {:city? where state='::state::' :} :]
+	<pre>
+	<:sidebyside:>
+	[:peopledata select * from people {: where city='::city::'' :} :]
 
-<:sidebyside:end:></pre>
+	<:sidebyside:>
+	[:peopledata select * from people {:city? where age > 20 :} :]
 
-h2. Conditional formatting
+	<:sidebyside:>
+	[:peopledata select * from people {:city? where state='::state::' :} :]
 
-In the following table, any cell containing an age < 50 is highlighted with green, the rest with gray. The text is white.
+	<:sidebyside:end:></pre>
 
-The id column has been turned into a link using textile syntax, which is "Title" : http://url.com (without the spaces)
+	h2. Conditional formatting
 
-<pre>
-[:peopledata when id then format:'"id":http://go.to/%%' when age < 50 then background:green, text:white, bold when age >= 50 then background:gray, text:white select * from people :]</pre>
+	In the following table, any cell containing an age < 50 is highlighted with green, the rest with gray. The text is white.
 
-The syntax for specifying a condition and associated style looks like this: when column > value then style
+	The id column has been turned into a link using textile syntax, which is "Title" : http://url.com (without the spaces)
 
-These operators work on both numbers and words values: >, <, >=, <=, =, !=
+	<pre>
+	[:peopledata when id then format:'"id":http://go.to/%%' when age < 50 then background:green, text:white, bold when age >= 50 then background:gray, text:white select * from people :]</pre>
 
-Numbers are compare ordinally, and words are compared in alphabetical order.
+	The syntax for specifying a condition and associated style looks like this: when column > value then style
 
-Supported styles:
-* bold, italics underline. Just use them like in the above example.
-* Colors: may be specified as gray, green, etc. or in the #000, #000000 formats.
-* Format: This is a primitive tool meant for replacing the value of a column with another value. The format must be specified in either single or double quotes. In the format template, %% is used to represent the column value.
+	These operators work on both numbers and words values: >, <, >=, <=, =, !=
 
-h2. CSV format
+	Numbers are compare ordinally, and words are compared in alphabetical order.
 
-To display a single query in csv format:
+	Supported styles:
+	* bold, italics underline. Just use them like in the above example.
+	* Colors: may be specified as gray, green, etc. or in the #000, #000000 formats.
+	* Format: This is a primitive tool meant for replacing the value of a column with another value. The format must be specified in either single or double quotes. In the format template, %% is used to represent the column value.
 
-* give the query an id. e.g. [:peopledata (id=testid) select * from people :]
-* formulate the url like this: http://hostname:port/page/pagename?id=testid&format=csv
+	h2. CSV format
 
-If you wish to change the quote, line separator or format separator, use the parameters in the url below:
-http://hostname:port/page/pagename?id=testid&format=csv&col_separator=%7C&quote="&line_separator=$
+	To display a single query in csv format:
 
-This url specifies The line separator as $, and the quote as ". The column separator is given as %7C, which is the url encoded value of the | character. Not all symbols need to be encoded like this. It is necessary only if the application displays an error. 
+	* give the query an id. e.g. [:peopledata (id=testid) select * from people :]
+	* formulate the url like this: http://hostname:port/page/pagename?id=testid&format=csv
 
-END
+	If you wish to change the quote, line separator or format separator, use the parameters in the url below:
+	http://hostname:port/page/pagename?id=testid&format=csv&col_separator=%7C&quote="&line_separator=$
 
-	@page = {
-		'content' => RedCloth.new(help_text).to_html
-	}
+	This url specifies The line separator as $, and the quote as ". The column separator is given as %7C, which is the url encoded value of the | character. Not all symbols need to be encoded like this. It is necessary only if the application displays an error.
 
-	haml :show_page
+	END
+
+		@page = {
+			'content' => RedCloth.new(help_text).to_html
+		}
+
+		haml :show_page
+	end
 end

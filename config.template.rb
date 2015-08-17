@@ -1,4 +1,4 @@
-def get_conf
+def env_conf
 	{
 		'datasources' => {
 			'localhost' => {

@@ -1,10 +1,8 @@
-CONF = {
-	'datasources' => {}
-}
+CONF = {}
 
 require "#{BASE}/config_#{ENV['RACK_ENV']}"
 
-env_conf(CONF)
+CONF = env_conf
 
 if CONF['datasources'].keys.length == 0
 	raise "At least one data sources must be configured."
