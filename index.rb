@@ -20,7 +20,8 @@ require 'redcloth'
 
 base_files_directory = get_conf['base_files_directory']
 
-class Ginger
+class Ginger < Sinatra::Base
+
 	def template_to_html(content, params)
 		convertors = []
 
