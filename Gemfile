@@ -11,4 +11,4 @@ gem 'parallel'
 gem 'capistrano'
 gem 'parslet'
 gem 'sqlite3'
-
+gem 'unicorn'
