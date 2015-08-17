@@ -12,3 +12,5 @@ config_test.rb
 .ruby-version
 *.sqlite
 *.sqlite-*
+.idea/
+*.iml
