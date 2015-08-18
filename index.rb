@@ -15,7 +15,7 @@ require "#{BASE}/libs/html_generator"
 require "#{BASE}/libs/csv_generator"
 require "#{BASE}/libs/common_utils"
 require "#{BASE}/libs/execution_context"
-require "#{BASE}/libs/ldap_auth"
+# require "#{BASE}/libs/ldap_auth"
 
 require 'rubygems'
 require 'sinatra'
