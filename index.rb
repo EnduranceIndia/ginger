@@ -50,7 +50,7 @@ class Ginger < Sinatra::Base
 		if params.has_key?(param_name) && params[param_name].length > 0
 			stored_data[:request_params][name] = {:value => params[param_name], :type => type}
 		else
-			if (template_params['required'].to_s || '').downcase == 'true'
+			if (template_params[:required].to_s || '').downcase == 'true'
 				raise StopEvaluation.new(title)
 			end
 		end
@@ -77,7 +77,7 @@ class Ginger < Sinatra::Base
 
 	get '/explore' do
 		@page = {
-			:content => "<h2>Data Sources</h2>\n<ul>" + get_conf['data_sources'].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
+			:content => "<h2>Data Sources</h2>\n<ul>" + get_conf[:data_sources].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
 		}
 
 		haml :show_page
@@ -85,8 +85,8 @@ class Ginger < Sinatra::Base
 
 	get '/explore/:data_source' do
 
-		data_source_name = params['data_source']
-		data_source = get_conf['data_sources'][data_source_name]
+		data_source_name = params[:data_source]
+		data_source = get_conf[:data_sources][data_source_name]
 
 		db = connect(data_source)
 
@@ -104,8 +104,8 @@ class Ginger < Sinatra::Base
 	end
 
 	get '/explore/:data_source/:table' do
-		data_source_name = params['data_source']
-		data_source = get_conf['data_sources'][data_source_name]
+		data_source_name = params[:data_source]
+		data_source = get_conf[:data_sources][data_source_name]
 
 		db = connect(data_source)
 
@@ -148,13 +148,13 @@ class Ginger < Sinatra::Base
 			query_params = remove_cache_request(uri.query, true) || ''
 			last_modified_time, cached_page = get_cached_page(@page_id, query_params)
 
-			if params['id']
-				parse_tree = parse_ginger_doc(@page['content'])
+			if params[:id]
+				parse_tree = parse_ginger_doc(@page[:content])
 				content_type 'text/plain'
 
 				CSVGenerator.new(params).generate(parse_tree)
-			elsif params['cache'] != 'true' && cached_page
-				@page['content'] = cached_page
+			elsif params[:cache] != 'true' && cached_page
+				@page[:content] = cached_page
 				cached_time = Time.now - last_modified_time
 
 				minute = 60
@@ -174,14 +174,14 @@ class Ginger < Sinatra::Base
 				@cached_time = "This page was cached #{cached_time} ago."
 			else
 				begin
-					@page['content'] = template_to_html(@page['content'], params)
+					@page[:content] = template_to_html(@page[:content], params)
 
-					if params['cache'] == 'true'
-						write_cached_page(@page_id, query_params, @page['content'])
+					if params[:cache] == 'true'
+						write_cached_page(@page_id, query_params, @page[:content])
 						redirect to(remove_cache_request(request.url, true))
 					end
 				rescue StopEvaluation => e
-					@page['content'] = e.message
+					@page[:content] = e.message
 				end
 			end
 
@@ -194,12 +194,12 @@ class Ginger < Sinatra::Base
 	end
 
 	post '/page/:page_id' do
-		if params['delete_page'] == 'true'
+		if params[:delete_page] == 'true'
 			page.delete(params[:page_id])
 			redirect to('/')
 		end
 
-		if params['destroy_cache'] == 'true'
+		if params[:destroy_cache] == 'true'
 			destroy_cache(params[:page_id])
 			redirect to(request.url)
 		end
