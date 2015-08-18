@@ -41,13 +41,13 @@ class GingerParser < Parslet::Parser
 	rule(:conditional_formatting) {((str('when') >> whitespace >> ((unquoted_word.as(:column) >> whitespace >> str('then') >> whitespace >> styles.as(:format)) | (unquoted_word.as(:column) >> whitespace >> ((condition >> whitespace >> str('and') >> whitespace).repeat >> condition).as(:conditions) >> whitespace >> str('then') >> whitespace >> styles.as(:format)))) >> whitespace).as(:rule).repeat }
 	rule(:data_variable) { str('$') >> unquoted_word.as(:data_variable) }
 
-	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:datasource) | datasource_variable | data_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> (conditional_formatting.as(:conditional_formatting) >> whitespace).maybe >> query.as(:query) >> whitespace >> str(':]') }
+	rule(:data) { str('[:') >> variable_check.maybe >> (unquoted_word.as(:data_source) | data_source_variable | data_variable) >> (str(':') >> unquoted_word.as(:format)).maybe >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> (conditional_formatting.as(:conditional_formatting) >> whitespace).maybe >> query.as(:query) >> whitespace >> str(':]') }
 
 	rule(:input) { open_bracket >> str('input:') >> unquoted_word.as(:type) >> whitespace >> arguments.maybe.as(:arguments) >> whitespace >> close_bracket }
 
 	rule(:switch_case) { open_bracket >> str('case:') >> unquoted_word.as(:source) >> str(':') >> unquoted_word.as(:destination) >> whitespace >> arguments.as(:arguments) >> whitespace >> close_bracket }
 
-	rule(:side_by_side) { open_bracket >> str('sidebyside') >> str(':end').maybe.as(:end) >> whitespace >> close_bracket }
+	rule(:side_by_side) { open_bracket >> str('side_by_side') >> str(':end').maybe.as(:end) >> whitespace >> close_bracket }
 
 	rule(:text_variable) { str(':') >> unquoted_word.as(:variable) >> str(':') }
 	rule(:check_text_variable_exists) { check_query_variable_exists }
@@ -55,7 +55,7 @@ class GingerParser < Parslet::Parser
 
 	rule(:ruby_code) { str('[%') >> ((str('%]').absent? >> str('"').absent? >> str("'").absent? >> any) | quoted_string).repeat.as(:code) >> str('%]') }
 
-	rule(:expression) { text_expression.as(:text_expression) | sidebyside.as(:side_by_side) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) | ruby_code }
+	rule(:expression) { text_expression.as(:text_expression) | side_by_side.as(:side_by_side) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) | ruby_code }
 
 	rule(:text) { (expression.absent? >> any).repeat(1) }
 

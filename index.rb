@@ -128,7 +128,7 @@ class Ginger < Sinatra::Base
 
 		@page_title = 'Edit page'
 
-		@page = page.load
+		@page = page.load(@page_id)
 
 		haml :edit_page
 	end
@@ -140,7 +140,7 @@ class Ginger < Sinatra::Base
 	get '/page/:page_id' do
 		@page_id = params[:page_id]
 
-		@page = page.load
+		@page = page.load(@page_id)
 
 		if @page
 			uri = URI.parse(request.url)
