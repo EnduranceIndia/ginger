@@ -19,3 +19,14 @@
         %ul.nav.navbar-nav
           %li
             %a{:href => '/'} Home
+
+    .container
+      .row
+        .col-md-6.col-md-offset-3
+          %form#login-form.form-inline{:method => 'POST', :action => '/login', :role => 'form'}
+            .form-group
+              %input.form-control{:type => 'email', :placeholder => 'LDAP username'}
+            .form-group
+              %input.form-control{:type => 'password', :placeholder => 'LDAP password'}
+            .form-group
+              %input.form-control.btn.btn-primary{:type => 'submit', :value => 'Login'}
