@@ -4,7 +4,6 @@ files/*
 *.swp
 Capfile
 deploy*
-unicorn.rb
 config_*
 config_test.rb
 *.sqlite
@@ -13,5 +12,6 @@ config_test.rb
 *.sqlite-*
 .idea/
 *.iml
-tmp/
 log/
+*.pid
+unicorn.rb
