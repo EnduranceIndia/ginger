@@ -2,7 +2,7 @@ require 'rubygems'
 require 'net/ldap'
 
 def ldap_authenticate(username, password)
-	_, domain = username.split('@')
+	name, domain = username.split('@')
 	auth_conf = get_conf[:authentication][param_to_sym(domain)]
 
 	if auth_conf
@@ -11,7 +11,7 @@ def ldap_authenticate(username, password)
 
 			ldap.host = auth_conf[:ldap_server]
 			ldap.port = auth_conf[:ldap_port] || 389
-			ldap.auth(username, password)
+			ldap.auth(name, password)
 
 			if ldap.bind
 				return {status: 'authenticated'}
