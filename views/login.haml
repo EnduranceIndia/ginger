@@ -25,8 +25,8 @@
         .col-md-6.col-md-offset-3
           %form#login-form.form-inline{:method => 'POST', :action => '/login', :role => 'form'}
             .form-group
-              %input.form-control{:type => 'email', :placeholder => 'LDAP username'}
+              %input.form-control{:type => 'email', :placeholder => 'LDAP username', :name =>  'username'}
             .form-group
-              %input.form-control{:type => 'password', :placeholder => 'LDAP password'}
+              %input.form-control{:type => 'password', :placeholder => 'LDAP password', :name => 'password'}
             .form-group
               %input.form-control.btn.btn-primary{:type => 'submit', :value => 'Login'}

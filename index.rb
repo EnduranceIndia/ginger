@@ -87,6 +87,19 @@ class Ginger < Sinatra::Base
 		haml :show_page
 	end
 
+	post '/login' do
+		username = params[:username]
+		password = params[:password]
+
+		ldap_auth_result = ldap_authenticate(username, password)
+
+		if ldap_auth_result[:status] == 'authenticated'
+			redirect('/')
+		else
+			redirect('/login')
+		end
+	end
+
 	get '/explore/:data_source' do
 
 		data_source_name = params[:data_source]

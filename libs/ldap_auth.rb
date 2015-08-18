@@ -3,7 +3,7 @@ require 'net/ldap'
 
 def ldap_authenticate(username, password)
 	_, domain = username.split('@')
-	auth_conf = get_conf[:authentication][domain]
+	auth_conf = get_conf[:authentication][param_to_sym(domain)]
 
 	if auth_conf
 		if auth_conf['type'] == 'ldap'
