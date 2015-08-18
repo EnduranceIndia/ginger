@@ -75,6 +75,10 @@ class Ginger < Sinatra::Base
 		haml :page_list
 	end
 
+	get '/login' do
+		haml :login
+	end
+
 	get '/explore' do
 		@page = {
 			:content => "<h2>Data Sources</h2>\n<ul>" + get_conf[:data_sources].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
