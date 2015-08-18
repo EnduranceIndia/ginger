@@ -21,8 +21,17 @@ require 'rubygems'
 require 'sinatra'
 require 'redcloth'
 
-
 class Ginger < Sinatra::Base
+
+	enable :sessions
+
+	set(:auth) do |*_|
+		condition do
+			unless session[:logged_in]
+				redirect('/login')
+			end
+		end
+	end
 
 	def template_to_html(content, params)
 		converters = [
@@ -70,7 +79,7 @@ class Ginger < Sinatra::Base
 		clean_url.gsub(/\?\s*$/, '')
 	end
 
-	get '/' do
+	get '/', :auth => [:user] do
 		@list_of_pages = page.list
 		haml :page_list
 	end
@@ -79,7 +88,7 @@ class Ginger < Sinatra::Base
 		haml :login
 	end
 
-	get '/explore' do
+	get '/explore', :auth => [:user] do
 		@page = {
 			:content => "<h2>Data Sources</h2>\n<ul>" + get_conf[:data_sources].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
 		}
@@ -94,13 +103,17 @@ class Ginger < Sinatra::Base
 		ldap_auth_result = ldap_authenticate(username, password)
 
 		if ldap_auth_result[:status] == 'authenticated'
+			session[:logged_in] = true
+			session[:username] = username
 			redirect('/')
 		else
+			session[:logged_in] = false
+			session[:username] = ''
 			redirect('/login')
 		end
 	end
 
-	get '/explore/:data_source' do
+	get '/explore/:data_source', :auth => [:user] do
 
 		data_source_name = params[:data_source]
 		data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
@@ -120,7 +133,7 @@ class Ginger < Sinatra::Base
 		haml :show_page
 	end
 
-	get '/explore/:data_source/:table' do
+	get '/explore/:data_source/:table', :auth => [:user]  do
 		data_source_name = params[:data_source]
 		data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
 
@@ -139,7 +152,7 @@ class Ginger < Sinatra::Base
 		haml :show_page
 	end
 
-	get '/page/:page_id/edit' do
+	get '/page/:page_id/edit', :auth => [:user] do
 		@page_id = params[:page_id]
 		@page = nil
 
@@ -150,11 +163,11 @@ class Ginger < Sinatra::Base
 		haml :edit_page
 	end
 
-	get '/page/:page_id/' do
+	get '/page/:page_id/', :auth => [:user] do
 		redirect to("/page/#{params[:page_id]}")
 	end
 
-	get '/page/:page_id' do
+	get '/page/:page_id', :auth => [:user] do
 		@page_id = params[:page_id]
 
 		@page = page.load(@page_id)
@@ -210,7 +223,7 @@ class Ginger < Sinatra::Base
 		end
 	end
 
-	post '/page/:page_id' do
+	post '/page/:page_id', :auth => [:user] do
 		if params[:delete_page] == 'true'
 			page.delete(params[:page_id])
 			redirect to('/')
