@@ -6,7 +6,7 @@ def ldap_authenticate(username, password)
 	auth_conf = get_conf[:authentication][param_to_sym(domain)]
 
 	if auth_conf
-		if auth_conf['type'] == 'ldap'
+		if auth_conf[:type] == 'ldap'
 			ldap = Net::LDAP.new
 
 			ldap.host = auth_conf[:ldap_server]
