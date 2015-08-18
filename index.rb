@@ -113,6 +113,12 @@ class Ginger < Sinatra::Base
 		end
 	end
 
+	get '/logout' do
+		session[:logged_in] = false
+		session[:username] = ''
+		redirect('/')
+	end
+
 	get '/explore/:data_source', :auth => [:user] do
 
 		data_source_name = params[:data_source]
