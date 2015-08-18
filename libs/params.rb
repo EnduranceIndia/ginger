@@ -30,3 +30,7 @@ end
 #data = "abc def ghi <<= one=1 two=2 !! hello world blah =>> jkl mno"
 #result = execute_template(data) {|params, query| "&&& #{params.inspect} || #{query} &&&&" }
 #puts result
+
+def param_to_sym(param)
+	param.to_s.gsub(/\s+/, '_').downcase.to_sym
+end

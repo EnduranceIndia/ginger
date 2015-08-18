@@ -86,7 +86,7 @@ class Ginger < Sinatra::Base
 	get '/explore/:data_source' do
 
 		data_source_name = params[:data_source]
-		data_source = get_conf[:data_sources][data_source_name]
+		data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
 
 		db = connect(data_source)
 
@@ -105,7 +105,7 @@ class Ginger < Sinatra::Base
 
 	get '/explore/:data_source/:table' do
 		data_source_name = params[:data_source]
-		data_source = get_conf[:data_sources][data_source_name]
+		data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
 
 		db = connect(data_source)
 

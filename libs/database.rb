@@ -7,10 +7,10 @@ require 'time'
 
 class DatabaseConnection
 	def initialize(adapter, data_source)
-		if data_source['type'] == 'sqlite'
-			@connection = Sequel.sqlite(CONF['base_files_directory'] + '/' + data_source['filename'])
+		if data_source[:type] == 'sqlite'
+			@connection = Sequel.sqlite(CONF[:base_files_directory] + '/' + data_source[:filename])
 		else
-			@connection = Sequel.connect(:adapter => adapter, :host => data_source['hostname'], :username => data_source['username'], :password => data_source['password'], :database => data_source['database'])
+			@connection = Sequel.connect(:adapter => adapter, :host => data_source[:hostname], :username => data_source[:username], :password => data_source[:password], :database => data_source[:database])
 		end
 	end
 
@@ -75,8 +75,8 @@ end
 
 def connect(data_source, database=nil)
 	if database
-		data_source['database'] = database
+		data_source[:database] = database
 	end
 
-	DatabaseConnection.new(data_source['type'], data_source)
+	DatabaseConnection.new(data_source[:type], data_source)
 end
