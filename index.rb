@@ -10,38 +10,38 @@ require "#{BASE}/libs/page_utils"
 require "#{BASE}/libs/database"
 require "#{BASE}/libs/stop_evaluation"
 require "#{BASE}/libs/ginger_parser"
-require "#{BASE}/libs/HTMLGenerator.rb"
-require "#{BASE}/libs/CSVGenerator.rb"
-require "#{BASE}/libs/common_utils.rb"
+require "#{BASE}/libs/content_generator"
+require "#{BASE}/libs/html_generator"
+require "#{BASE}/libs/csv_generator"
+require "#{BASE}/libs/common_utils"
+require "#{BASE}/libs/execution_context"
+require "#{BASE}/libs/ldap_auth"
 
 require 'rubygems'
 require 'sinatra'
 require 'redcloth'
 
-base_files_directory = get_conf['base_files_directory']
 
 class Ginger < Sinatra::Base
 
 	def template_to_html(content, params)
-		convertors = []
-
-		convertors = [
-			proc {|content| parse_ginger_doc(content) },
-			proc {|content| HTMLGenerator.new(params).generate(content) },
-			proc {|content|
-				redcloth = RedCloth.new(content)
+		converters = [
+			proc {|content_value| parse_ginger_doc(content_value) },
+			proc {|content_value| HTMLGenerator.new(params).generate(content_value) },
+			proc {|content_value|
+				redcloth = RedCloth.new(content_value)
 				redcloth.extend FormTag
-				redcloth.to_html(content)
+				redcloth.to_html(content_value)
 			}
 		]
 
 		new_content = content
 
-		convertors.each {|convertor|
-			new_content = convertor.call(new_content)
+		converters.each {|converter|
+			new_content = converter.call(new_content)
 		}
 
-		return new_content
+		new_content
 	end
 
 	def store_param_data(stored_data, template_params, params, name, title, type)
@@ -50,7 +50,7 @@ class Ginger < Sinatra::Base
 		if params.has_key?(param_name) && params[param_name].length > 0
 			stored_data[:request_params][name] = {:value => params[param_name], :type => type}
 		else
-			if (template_params['required'].to_s || "").downcase == 'true'
+			if (template_params['required'].to_s || '').downcase == 'true'
 				raise StopEvaluation.new(title)
 			end
 		end
@@ -59,17 +59,15 @@ class Ginger < Sinatra::Base
 	def add_cache_request(url)
 		return if url.index('cache=true') != nil
 		return url + '&cache=true' if url.index('?') != nil
-		return url + '?cache=true'
+		url + '?cache=true'
 	end
 
 	def remove_cache_request(url, cache_switch)
-		return "" if url == nil
-		clean_url = url.gsub(/&cache=#{cache_switch}/, "")
-		clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, "")
-		clean_url = clean_url.gsub(/cache=#{cache_switch}/, "") if clean_url.index("cache=#{cache_switch}") == 0
-		clean_url = clean_url.gsub(/\?\s*$/, "")
-
-		return clean_url
+		return '' if url == nil
+		clean_url = url.gsub(/&cache=#{cache_switch}/, '')
+		clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, '')
+		clean_url = clean_url.gsub(/cache=#{cache_switch}/, '') if clean_url.index("cache=#{cache_switch}") == 0
+		clean_url.gsub(/\?\s*$/, '')
 	end
 
 	get '/' do
@@ -79,40 +77,37 @@ class Ginger < Sinatra::Base
 
 	get '/explore' do
 		@page = {
-			'content' => "<h2>Datasources</h2>\n<ul>" + get_conf['datasources'].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + "</ul>"
+			:content => "<h2>Data Sources</h2>\n<ul>" + get_conf['data_sources'].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
 		}
 
 		haml :show_page
 	end
 
-	get '/explore/:datasource' do
-		template = nil
+	get '/explore/:data_source' do
 
-		datasource_name = params['datasource']
-		datasource = get_conf['datasources'][datasource_name]
+		data_source_name = params['data_source']
+		data_source = get_conf['data_sources'][data_source_name]
 
-		db = connect(datasource)
+		db = connect(data_source)
 
 		template = "h3. List of tables\n"
 
-		template += db.queryables.collect {|table|
-			"* \"#{table.to_s}\":/explore/#{datasource_name}/#{table.to_s}"
+		template += db.query_tables.collect {|table|
+			"* \"#{table.to_s}\":/explore/#{data_source_name}/#{table.to_s}"
 		}.join("\n")
 
 		@page = {
-			'content' => template_to_html(template, {})
+			:content => template_to_html(template, {})
 		}
 
 		haml :show_page
 	end
 
-	get '/explore/:datasource/:table' do
-		template = nil
+	get '/explore/:data_source/:table' do
+		data_source_name = params['data_source']
+		data_source = get_conf['data_sources'][data_source_name]
 
-		datasource_name = params['datasource']
-		datasource = get_conf['datasources'][datasource_name]
-
-		db = connect(datasource)
+		db = connect(data_source)
 
 		template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
 
@@ -121,7 +116,7 @@ class Ginger < Sinatra::Base
 		}.join("\n")
 
 		@page = {
-			'content' => template_to_html(template, {})
+			:content => template_to_html(template, {})
 		}
 
 		haml :show_page
@@ -131,41 +126,34 @@ class Ginger < Sinatra::Base
 		@page_id = params[:page_id]
 		@page = nil
 
-		@page_title = "Edit page"
+		@page_title = 'Edit page'
 
-		@page = page.load(@page_id)
+		@page = page.load
 
 		haml :edit_page
 	end
 
 	get '/page/:page_id/' do
-		return redirect to("/page/#{params[:page_id]}")
+		redirect to("/page/#{params[:page_id]}")
 	end
 
 	get '/page/:page_id' do
-		stored_data = {
-			:request_params => {
-			},
-			:user_variables => {
-			}
-		}
-
 		@page_id = params[:page_id]
 
-		@page = page.load(@page_id)
+		@page = page.load
 
 		if @page
 			uri = URI.parse(request.url)
 
-			query_params = remove_cache_request(uri.query, true) || ""
+			query_params = remove_cache_request(uri.query, true) || ''
 			last_modified_time, cached_page = get_cached_page(@page_id, query_params)
 
 			if params['id']
 				parse_tree = parse_ginger_doc(@page['content'])
 				content_type 'text/plain'
 
-				return CSVGenerator.new(params).generate(parse_tree)
-			elsif (params['cache'] != 'true' && cached_page)
+				CSVGenerator.new(params).generate(parse_tree)
+			elsif params['cache'] != 'true' && cached_page
 				@page['content'] = cached_page
 				cached_time = Time.now - last_modified_time
 
@@ -174,23 +162,23 @@ class Ginger < Sinatra::Base
 				day = 24 * hour
 
 				if cached_time / minute < 2
-					@cached_time = "#{cached_time.round} seconds"
+					cached_time = "#{cached_time.round} seconds"
 				elsif cached_time / hour < 2
-					@cached_time = "#{(cached_time / minute).round} minutes"
+					cached_time = "#{(cached_time / minute).round} minutes"
 				elsif cached_time / day < 2
-					@cached_timecached_time = "#{(cached_time / hour).round} hours"
+					cached_time = "#{(cached_time / hour).round} hours"
 				else
-					@cached_timecached_time = "#{(cached_time / day).round} days"
+					cached_time = "#{(cached_time / day).round} days"
 				end
 
-				@cached_time = "This page was cached #{@cached_time} ago."
+				@cached_time = "This page was cached #{cached_time} ago."
 			else
 				begin
 					@page['content'] = template_to_html(@page['content'], params)
 
 					if params['cache'] == 'true'
 						write_cached_page(@page_id, query_params, @page['content'])
-						return redirect to(remove_cache_request(request.url, true))
+						redirect to(remove_cache_request(request.url, true))
 					end
 				rescue StopEvaluation => e
 					@page['content'] = e.message
@@ -199,7 +187,7 @@ class Ginger < Sinatra::Base
 
 			haml :show_page
 		else
-			@page_title = "New page"
+			@page_title = 'New page'
 			@page = {}
 			haml :edit_page
 		end
@@ -208,17 +196,17 @@ class Ginger < Sinatra::Base
 	post '/page/:page_id' do
 		if params['delete_page'] == 'true'
 			page.delete(params[:page_id])
-			return redirect to("/")
+			redirect to('/')
 		end
 
 		if params['destroy_cache'] == 'true'
 			destroy_cache(params[:page_id])
-			return redirect to(request.url)
+			redirect to(request.url)
 		end
 
 		content = {
-			'title' => params[:title],
-			'content' => params[:content]
+			:title => params[:title],
+			:content => params[:content]
 		}
 
 		page_id = params[:page_id]
@@ -262,61 +250,61 @@ class Ginger < Sinatra::Base
 
 	h2. Tabular data
 
-	In the statement below, peopledata is the data source being queried. The query "select * from people" is executed against this data source, and the result is displayed in tabular format. Tabular format is the default when the result is multiple rows or columns.
+	In the statement below, people_data is the data source being queried. The query "select * from people" is executed against this data source, and the result is displayed in tabular format. Tabular format is the default when the result is multiple rows or columns.
 
 	<pre>
-	[:peopledata select * from people :]</pre>
+	[:people_data select * from people :]</pre>
 
 	In the statement below, the result has a single row and column, so the output will be rendered as plain text without any table markup.
 
 	<pre>
-	[:peopledata select count(*) from people :]</pre>
+	[:people_data select count(*) from people :]</pre>
 
 	To explicitly choose plain text:
 
 	<pre>
-	[:peopledata:scalar select count(*) from people :]
+	[:people_data:scalar select count(*) from people :]
 	</pre>
 
 	and for tabular output:
 
 	<pre>
-	[:peopledata:table select count(*) from people :]
+	[:people_data:table select count(*) from people :]
 	</pre>
 
 	h2. Query expressions
 
 	<pre>
-	[:peopledata select * from people {: where city='::city::' :}]</pre>
+	[:people_data select * from people {: where city='::city::' :}]</pre>
 
 	The where clause will be added only if the city variable exists. The value of city will be escaped, because it is enclosed in double colons. Values are not escaped when enclosed in a single colons, like so:
 
 	<pre>
-	[:peopledata select * from people {: where age > :age: :}]</pre>
+	[:people_data select * from people {: where age > :age: :}]</pre>
 
 	In the statement below, the where clauses will be added if city has been specified as a form parameter or variable.
 
 	<pre>
-	[:peopledata select * from people {:city? where 1=2 :}]</pre>
+	[:people_data select * from people {:city? where 1=2 :}]</pre>
 
-	To specify a datasource that is contained in a variable:
+	To specify a data_source that is contained in a variable:
 
 	<pre>
-	<:dsname=employee_ds:>
-	[:{:dsname:} select * from people :]</pre>
+	<:ds_name=employee_ds:>
+	[:{:ds_name:} select * from people :]</pre>
 
 	This is useful when the data source needs to be changed based on some user specified input.
 
 	A case statement may be used to set a variable based on the value of the input, and that variable may be used as a data source:
 
 	<pre>
-	<:case:input:dsname (options=1,2,3 dsname=a,b,c) :>
-	[:{:dsname:} select * from people :]</pre>
+	<:case:input:ds_name (options=1,2,3 ds_name=a,b,c) :>
+	[:{:ds_name:} select * from people :]</pre>
 
 	h2. Graphs
 
 	<pre>
-	[:peopledata:pie select city, count(*) from people group by city :]</pre>
+	[:people_data:pie select city, count(*) from people group by city :]</pre>
 
 	The result set would look something like this:
 
@@ -330,9 +318,9 @@ class Ginger < Sinatra::Base
 	In each row, the first column contains the title, and the second column contains corresponding value.
 
 	<pre>
-	[:peopledata:bar (xtitle='Some title' ytitle='Some other title') select city, count(*) from people group by city :]</pre>
+	[:people_data:bar (x_title='Some title' y_title='Some other title') select city, count(*) from people group by city :]</pre>
 
-	Bar and line charts are similar. xtitle and ytitle refer to the captions on the x and y axis, but are not compulsory.
+	Bar and line charts are similar. x_title and y_title refer to the captions on the x and y axis, but are not compulsory.
 
 	h2. Forms
 
@@ -355,7 +343,7 @@ class Ginger < Sinatra::Base
 	A dropdown can also be specified in terms of a database query, like so:
 
 	<pre>
-	[:peopledata:dropdown (name=name title=Name option_column=name value_column=id) select * from people :]
+	[:people_data:dropdown (name=name title=Name option_column=name value_column=id) select * from people :]
 	</pre>
 
 	In this example, the name column of the result is what will be displayed in the dropdown box, and the corresponding id column is the value sent back for this field when the query button is pressed.
@@ -383,26 +371,26 @@ class Ginger < Sinatra::Base
 	On the line before each table, put the following tag:
 
 	<pre>
-	<:sidebyside:></pre>
+	<:side_by_side:></pre>
 
 	After all the side-by-side tables, put this tag:
 
 	<pre>
-	<:sidebyside:end></pre>
+	<:side_by_side:end></pre>
 
 	For example:
 
 	<pre>
-	<:sidebyside:>
-	[:peopledata select * from people {: where city='::city::'' :} :]
+	<:side_by_side:>
+	[:people_data select * from people {: where city='::city::'' :} :]
 
-	<:sidebyside:>
-	[:peopledata select * from people {:city? where age > 20 :} :]
+	<:side_by_side:>
+	[:people_data select * from people {:city? where age > 20 :} :]
 
-	<:sidebyside:>
-	[:peopledata select * from people {:city? where state='::state::' :} :]
+	<:side_by_side:>
+	[:people_data select * from people {:city? where state='::state::' :} :]
 
-	<:sidebyside:end:></pre>
+	<:side_by_side:end:></pre>
 
 	h2. Conditional formatting
 
@@ -411,7 +399,7 @@ class Ginger < Sinatra::Base
 	The id column has been turned into a link using textile syntax, which is "Title" : http://url.com (without the spaces)
 
 	<pre>
-	[:peopledata when id then format:'"id":http://go.to/%%' when age < 50 then background:green, text:white, bold when age >= 50 then background:gray, text:white select * from people :]</pre>
+	[:people_data when id then format:'"id":http://go.to/%%' when age < 50 then background:green, text:white, bold when age >= 50 then background:gray, text:white select * from people :]</pre>
 
 	The syntax for specifying a condition and associated style looks like this: when column > value then style
 
@@ -428,18 +416,18 @@ class Ginger < Sinatra::Base
 
 	To display a single query in csv format:
 
-	* give the query an id. e.g. [:peopledata (id=testid) select * from people :]
-	* formulate the url like this: http://hostname:port/page/pagename?id=testid&format=csv
+	* give the query an id. e.g. [:people_data (id=test_id) select * from people :]
+	* formulate the url like this: http://hostname:port/page/pagename?id=test_id&format=csv
 
 	If you wish to change the quote, line separator or format separator, use the parameters in the url below:
-	http://hostname:port/page/pagename?id=testid&format=csv&col_separator=%7C&quote="&line_separator=$
+	http://hostname:port/page/pagename?id=test_id&format=csv&col_separator=%7C&quote="&line_separator=$
 
 	This url specifies The line separator as $, and the quote as ". The column separator is given as %7C, which is the url encoded value of the | character. Not all symbols need to be encoded like this. It is necessary only if the application displays an error.
 
 	END
 
 		@page = {
-			'content' => RedCloth.new(help_text).to_html
+			:content => RedCloth.new(help_text).to_html
 		}
 
 		haml :show_page

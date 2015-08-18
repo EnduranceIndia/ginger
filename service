@@ -13,7 +13,7 @@ BASE_DIR=`dirname $BASE_DIR`
 BASE_DIR=`dirname $BASE_DIR`
 PID_FILE=$BASE_DIR/unicorn.pid
 CURRENT=$BASE_DIR/current
-
+echo $BASE_DIR
 source ~/.bash_profile
 
 function stop_service {

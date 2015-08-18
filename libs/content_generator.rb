@@ -1,5 +1,3 @@
-require "#{BASE}/libs/ExecutionContext.rb"
-require "#{BASE}/libs/page_utils.rb"
 require 'erb'
 
 class ContentGenerator
@@ -12,30 +10,27 @@ class ContentGenerator
 	end
 
 	def empty_text
-		return {:text => ''}
+		{:text => ''}
 	end
 
 	def text(val)
-		return {:text => val}
+		{:text => val}
 	end
 
 	def process_code(parameters)
-		text(@context.instance_eval(parameters[:code]) || "")
+		text(@context.instance_eval(parameters[:code]) || '')
 	end
 
 	def parse_param_data(template_params)
-		name = strip_quotes(template_params['name'].to_s)
-		title = strip_quotes(template_params['title'].to_s)
-		type = strip_quotes(template_params['type'].to_s)
+		name = strip_quotes(template_params[:name].to_s)
+		title = strip_quotes(template_params[:title].to_s)
+		type = strip_quotes(template_params[:type].to_s)
 
 		return name, title, type
 	end
 
 	def process_text_expression(parameters)
-		if !variable_checks_passed(parameters[:text_expression])
-			return text("")
-		end
-
+		return text('') unless variable_checks_passed(parameters[:text_expression])
 		key = parameters[:text_expression][:variable]
 
 		if key == nil
@@ -44,7 +39,6 @@ class ContentGenerator
 		end
 
 		key = key.to_s
-		value = nil
 
 		if stored_data[:request_params][key]
 			value = stored_data[:request_params][key][:value]
@@ -53,11 +47,11 @@ class ContentGenerator
 		end
 
 		if value != nil
-			value = (value || "").to_s
+			value = (value || '').to_s
 
-			return text(to_text(parameters[:text_expression][:pre_text]) + value + to_text(parameters[:text_expression][:post_text]))
+			text(to_text(parameters[:text_expression][:pre_text]) + value + to_text(parameters[:text_expression][:post_text]))
 		else
-			return empty_text
+			empty_text
 		end
 	end
 
@@ -70,12 +64,12 @@ class ContentGenerator
 		parameters
 	end
 
-	def process_sidebyside(parameters)
-		if parameters[:sidebyside][:end]
+	def process_side_by_side(parameters)
+		if parameters[:side_by_side][:end]
 			text("<div style='clear: both;'></div>")
 		else
 			@markdown_table_class_added = true
-			text("table{float:left; margin-right:10px; margin-bottom: 10px}.")
+			text('table{float:left; margin-right:10px; margin-bottom: 10px}.')
 		end
 	end
 
@@ -96,9 +90,9 @@ class ContentGenerator
 			empty_text
 		when 'text'
 			if !template_params.has_key?('name')
-				text("[No name specified for input field.]")
+				text('[No name specified for input field.]')
 			elsif !template_params.has_key?('title')
-				text("[No title specified for input field.]")
+				text('[No title specified for input field.]')
 			else
 				name, title, type = parse_param_data(template_params)
 				store_param_data(stored_data, template_params, params, name, title, type)
@@ -112,22 +106,22 @@ class ContentGenerator
 			end
 		when 'dropdown'
 			if !template_params.has_key?('name')
-				text("[No name specified for input field.]")
+				text('[No name specified for input field.]')
 			elsif !template_params.has_key?('title')
-				text("[No title specified for input field.]")
+				text('[No title specified for input field.]')
 			elsif !template_params.has_key?('options')
-				text("[No options have been specified for input #{template_params['name']}.]")
+				text("[No options have been specified for input #{template_params[:name]}.]")
 			elsif !template_params.has_key?('values')
-				text("[No values have been specified for input #{template_params['name']}.]")
+				text("[No values have been specified for input #{template_params[:name]}.]")
 			else
-				options = template_params['options'].to_a.collect {|item| item.to_s }
-				values = template_params['values'].to_a.collect {|item| item.to_s }
+				options = template_params[:options].to_a.collect {|item| item.to_s }
+				values = template_params[:values].to_a.collect {|item| item.to_s }
 
-				options = [options] if !options.is_a?(Array)
-				values = [values] if !values.is_a?(Array)
+				options = [options] unless options.is_a?(Array)
+				values = [values] unless values.is_a?(Array)
 
 				if options.length != values.length
-					text("[Options and values of input #{template_params['name']} are not of equal length.]")
+					text("[Options and values of input #{template_params[:name]} are not of equal length.]")
 				else
 					name, title, type = parse_param_data(template_params)
 					store_param_data(stored_data, template_params, params, name, title, type)
@@ -136,15 +130,16 @@ class ContentGenerator
 
 					options.zip(values).each {|option, id|
 						option = strip_quotes(option)
-						selected_state = params["p_#{name}"] == id ? "selected=true" : ""
+						selected_state = params["p_#{name}"] == id ? 'selected=true' : ''
 						html += "<option value='#{id}' #{selected_state}>#{option}</option>"
 					}
 
-					html += "</select></span>"
+					html += '</select></span>'
 
 					text(html)
 				end
 			end
+		else
 		end
 	end
 
@@ -152,19 +147,19 @@ class ContentGenerator
 		template_params = parameters[:case][:arguments]
 
 		if !template_params.has_key?('options')
-			text("[options have not been specified for case statement.]")
+			text('[options have not been specified for case statement.]')
 		elsif !template_params.has_key?('values')
-			text("[values have not been specified for case statement.]")
+			text('[values have not been specified for case statement.]')
 		end
 		
-		options = template_params['options']
-		values = template_params['values']
+		options = template_params[:options]
+		values = template_params[:values]
 
-		options = [options] if !options.is_a?(Array)
-		values = [values] if !values.is_a?(Array)
+		options = [options] unless options.is_a?(Array)
+		values = [values] unless values.is_a?(Array)
 
 		if options.length != values.length
-			text("[There must be as many options as values, no more or less.]")
+			text('[There must be as many options as values, no more or less.]')
 		else
 			source = parameters[:case][:source].to_s
 			destination = parameters[:case][:destination].to_s
@@ -179,8 +174,8 @@ class ContentGenerator
 
 			if index_of_value != nil
 				stored_data[:user_variables][destination] = strip_quotes(values[index_of_value])
-			elsif template_params['default']
-				stored_data[:user_variables][destination] = strip_quotes(template_params['default'])
+			elsif template_params[:default]
+				stored_data[:user_variables][destination] = strip_quotes(template_params[:default])
 			else
 				error = empty_text
 			end
@@ -190,7 +185,7 @@ class ContentGenerator
 	end
 
 	def to_text(val)
-		val.is_a?(Array) ? "" : val.to_s
+		val.is_a?(Array) ? '' : val.to_s
 	end
 
 	def variable_checks_passed(parameters)
@@ -199,7 +194,6 @@ class ContentGenerator
 		parameters[:variable_checks].each {|check|
 			variable_existence_check = check[:check_query_variable_exists] != nil
 			variable_value_check = check[:check_variable_key] != nil
-			check_passed = true
 
 			if variable_existence_check
 				query_variable_to_check = check[:check_query_variable_exists]
@@ -221,30 +215,31 @@ class ContentGenerator
 			end
 		}
 
-		return true
+		true
 	end
 
 	def parameters_to_query(parameters, connection)
 		request_params = stored_data[:request_params]
 		
-		query = parameters[:data][:query].collect {|item|
+		parameters[:data][:query].collect {|item|
 			if item[:text]
 				item[:text]
 			elsif item[:variable]
 				variable_name = item[:variable]	.to_s
 
 				if stored_data[:user_variables].has_key?(variable_name)
-					strip_quotes(stored_data[:user_variables][variable_name] || "")
+					strip_quotes(stored_data[:user_variables][variable_name] || '')
 				elsif request_params.has_key?(variable_name)
-					strip_quotes(request_params[variable_name][:value] || "")
+					strip_quotes(request_params[variable_name][:value] || '')
 				end
 			elsif item[:escaped_variable]
 				variable_name = item[:escaped_variable].to_s
+				value = nil
 
 				if stored_data[:user_variables].has_key?(variable_name)
-					value = (stored_data[:user_variables][variable_name] || "")
+					value = (stored_data[:user_variables][variable_name] || '')
 				elsif request_params.has_key?(variable_name)
-					value = request_params[variable_name][:value] || ""
+					value = request_params[variable_name][:value] || ''
 				end
 
 				strip_quotes(escape(connection, strip_quotes(value)))
@@ -271,27 +266,24 @@ class ContentGenerator
 							value = strip_quotes(escape(connection, strip_quotes(value))) if escaped
 							"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
 						else
-							""
+							''
 						end
 					else
 						"#{to_text(item[:expression][:pre_text])}"
 					end
 				else
-					""
+					''
 				end
 			end
 		}.join
 	end
 
 	def process_data(parameters)
-		if !variable_checks_passed(parameters[:data])
-			return text("")
-		end
+		return text('') unless variable_checks_passed(parameters[:data])
 
 		markdown_table_class_added = @markdown_table_class_added
 		@markdown_table_class_added = nil
 
-		request_params = stored_data[:request_params]
 		template_params = parameters[:data][:arguments] || {}
 		
 		conf = get_conf
@@ -307,20 +299,20 @@ class ContentGenerator
 				return text('Variable not set')
 			end
 
-			cols, resultset = data[0], data.drop(1).flatten(1)
+			cols, result_set = data[0], data.drop(1).flatten(1)
 		else
-			if parameters[:data][:datasource_variable]
-				datasource_name = stored_data[:user_variables][parameters[:data][:datasource_variable].to_s]
+			if parameters[:data][:data_source_variable]
+				data_source_name = stored_data[:user_variables][parameters[:data][:data_source_variable].to_s]
 			else
-				datasource_name = parameters[:data][:datasource].to_s
+				data_source_name = parameters[:data][:data_source].to_s
 			end
 
-			datasource = conf['datasources'][datasource_name]
-			return text("Datasource not found") if !datasource
+			data_source = conf[:data_sources][data_source_name]
+			return text('Data source not found') unless data_source
 			
 			error = nil
 			
-			connection = connect(datasource, template_params['database'])
+			connection = connect(data_source, template_params[:database])
 
 			query = parameters[:data][:query]
 
@@ -332,11 +324,11 @@ class ContentGenerator
 				query = parameters_to_query(parameters, connection)
 			end
 
-			cols, resultset = [nil, nil]
+			cols, result_set = [nil, nil]
 			
 			begin
-				cols, resultset = connection.query_table(query)
-				raise cols.inspect + " => " + resultset.inspect if parameters[:data][:data_variable]
+				cols, result_set = connection.query_table(query)
+				raise cols.inspect + ' => ' + result_set.inspect if parameters[:data][:data_variable]
 			rescue Object => e
 				puts "Error running query #{query}"
 				puts "Exception message: #{e.message}"
@@ -344,22 +336,22 @@ class ContentGenerator
 
 				error = "[Error running query: #{query}]<br />"
 				error += "[Exception message: #{e.message}]<br />"
-				error += e.backtrace.join("<br />")
+				error += e.backtrace.join('<br />')
 
 				return text(error)
 			end
 		end
 
-		return text("[Neither datasource nor reference found]") if resultset == nil
+		return text('[Neither data source nor reference found]') if result_set == nil
 
 		if template_params.has_key?('store')
-			stored_data[:user_variables][template_params['store'].to_s] = resultset
+			stored_data[:user_variables][template_params[:store].to_s] = result_set
 			empty_text
 		elsif parameters[:data][:format].to_s == 'table'
-			text(render_table(cols, resultset, markdown_table_class_added, parameters[:data][:conditional_formatting]))
+			text(render_table(cols, result_set, markdown_table_class_added, parameters[:data][:conditional_formatting]))
 		elsif parameters[:data][:format].to_s == 'scalar'
-			if resultset[0] != nil && resultset[0][0] != nil
-				text(resultset[0][0].to_s)
+			if result_set[0] != nil && result_set[0][0] != nil
+				text(result_set[0][0].to_s)
 			else
 				empty_text
 			end
@@ -373,40 +365,40 @@ class ContentGenerator
 			elsif !parameters[:data][:arguments].has_key?('value_column')
 				text("Can't display a dropdown without value_column.")
 			else
-				option_col_index = cols.index(parameters[:data][:arguments]['option_column'].to_s)
-				value_col_index = cols.index(parameters[:data][:arguments]['value_column'].to_s)
+				option_col_index = cols.index(parameters[:data][:arguments][:option_column].to_s)
+				value_col_index = cols.index(parameters[:data][:arguments][:value_column].to_s)
 
 				if option_col_index == nil
 					text("Can't display dropdown without a valid option_column.")
 				elsif value_col_index == nil
 					text("Can't display dropdown without a valid value_column.")
 				else
-					name = parameters[:data][:arguments]['name'].to_s
-					title = strip_quotes(parameters[:data][:arguments]['title'].to_s)
+					name = parameters[:data][:arguments][:name].to_s
+					title = strip_quotes(parameters[:data][:arguments][:title].to_s)
 
 					html = "<span><select name=p_#{name}><option value=''>[#{title}]</option>"
 
-					options = resultset.collect {|row| row[option_col_index] }
-					values = resultset.collect {|row| row[value_col_index] }
+					options = result_set.collect {|row| row[option_col_index] }
+					values = result_set.collect {|row| row[value_col_index] }
 
 					options.zip(values).each {|option, id|
 						option = strip_quotes(option)
-						selected_state = params["p_#{name}"] == id.to_s ? "selected=true" : ""
+						selected_state = params["p_#{name}"] == id.to_s ? 'selected=true' : ''
 						html += "<option value='#{id}' #{selected_state}>#{option}</option>"
 					}
 
-					html += "</select></span>"
+					html += '</select></span>'
 
 					text(html)
 				end
 			end
-		elsif ['line', 'bar', 'pie'].include?(parameters[:data][:format].to_s)
-			text(emit_chart(parameters[:data][:format].to_s.to_sym, resultset, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i))
+		elsif %w(line, bar, pie).include?(parameters[:data][:format].to_s)
+			text(emit_chart(parameters[:data][:format].to_s.to_sym, result_set, cols, template_params[:name], template_params[:title], template_params[:x_title], template_params[:y_title], template_params[:height].to_i, template_params[:width].to_i))
 		else
-			if resultset.length == 1 && resultset[0].length == 1
-				text((resultset[0][0] || "nil").to_s)
+			if result_set.length == 1 && result_set[0].length == 1
+				text((result_set[0][0] || 'nil').to_s)
 			else
-				text(render_table(cols, resultset, markdown_table_class_added, parameters[:data][:conditional_formatting]))
+				text(render_table(cols, result_set, markdown_table_class_added, parameters[:data][:conditional_formatting]))
 			end
 		end
 	end

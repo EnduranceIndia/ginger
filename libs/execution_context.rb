@@ -1,6 +1,4 @@
 require 'parallel'
-require "#{BASE}/libs/page_utils"
-require "#{BASE}/libs/database"
 
 class ExecutionContext
 	def initialize(stored_data)
@@ -19,7 +17,7 @@ class ExecutionContext
 	end
 
 	def verify_validity(call)
-		raise NotAllowedError.new("#{call} not allowed.") if !@allowed.include?(call)
+		raise NotAllowedError.new("#{call} not allowed.") unless @allowed.include?(call)
 	end
 
 	def store(name)
@@ -28,42 +26,42 @@ class ExecutionContext
 		execute
 
 		@stored_data[:user_variables][name] = @last_result
-		return nil
+		nil
 	end
 
-	def [](datasource_name)
+	def [](data_source_name)
 		verify_validity('[]')
 
-		@datasource_name = datasource_name
+		@data_source_name = data_source_name
 		@allowed = ['query']
 
-		return self
+		self
 	end
 
 	def query(query, *params)
 		verify_validity('query')
 
-		@queries << {datasource_name: @datasource_name, query: query, params: params}
-		@allowed = ['[]', 'query', 'store']
+		@queries << {datasource_name: @data_source_name, query: query, params: params}
+		@allowed = %w([] query store)
 
-		return self
+		self
 	end
 
 	def user_variables(key)
 		@stored_data[:user_variables][key]
 	end
 
-	def get_datasource_connection(datasource_name=nil)
-		datasource_name = datasource_name || @datasource_name
+	def get_data_source_connection(data_source_name=nil)
+		data_source_name = data_source_name || @data_source_name
 
-		if @connections[datasource_name] == nil
-			datasource_info = get_conf['datasources'][datasource_name]
-			raise DatasourceNotFoundError.new(datasource_name) if datasource_info == nil
+		if @connections[data_source_name] == nil
+			data_source_info = get_conf[:data_sources][data_source_name]
+			raise DataSourceNotFoundError.new(data_source_name) if data_source_info == nil
 
-			@connections[datasource_name] = connect(datasource_info, nil)
+			@connections[data_source_name] = connect(data_source_info, nil)
 		end
 
-		return @connections[datasource_name]
+		@connections[data_source_name]
 	end
 
 	def request_param(key)
@@ -77,7 +75,7 @@ class ExecutionContext
 
 	def execute
 		results = Parallel.map(@queries, :in_processes => 10) {|query_info|
-			connection = get_datasource_connection(query_info[:datasource_name])
+			connection = get_data_source_connection(query_info[:@data_source_name])
 			connection.query_table(query_info[:query], *query_info[:params])
 		}
 
@@ -105,16 +103,16 @@ end
 class UntypedRequestParamError < Exception
 	attr_reader :message
 
-	def initialize(key)
-		@message = "Cannot return the value of an untyped form paramter."
+	def initialize(_)
+		@message = 'Cannot return the value of an untyped form parameter.'
 	end
 end
 
-class DatasourceNotFoundError < Exception
+class DataSourceNotFoundError < Exception
 	attr_reader :message
 
-	def initialize(datasource_name)
-		@message = "Datasource #{datasource_name} configuration not found."
+	def initialize(data_source_name)
+		@message = "Data source #{data_source_name} configuration not found."
 	end
 end
 

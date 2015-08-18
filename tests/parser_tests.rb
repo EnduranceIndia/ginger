@@ -16,17 +16,17 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'locates the data source in a data expression' do
-		result = parse("[:peopledata select 1; :]")
-		result[0][:data][:datasource].to_s.should eq('peopledata')
+		result = parse('[:people_data select 1; :]')
+		result[0][:data][:data_source].to_s.should eq('people_data')
 	end
 
 	it 'locates the query in a data expression' do
-		result = parse("[:peopledata select 1; :]")
+		result = parse('[:people_data select 1; :]')
 		result[0][:data][:query][0][:text].to_s.strip.should eq('select 1;')
 	end
 
 	it 'correctly parses arguments with a single value' do
-		result = parse("[:peopledata (arg1=1 arg2=2) select 1; :]")
+		result = parse('[:people_data (arg1=1 arg2=2) select 1; :]')
 
 		arguments = result[0][:data][:arguments]
 
@@ -36,17 +36,17 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'correctly parses arguments with multiple values' do
-		result = parse("[:peopledata (arg1=1 arg2=2,3) select 1; :]")
+		result = parse('[:people_data (arg1=1 arg2=2,3) select 1; :]')
 
 		arguments = result[0][:data][:arguments]
 
 		arguments.keys.length.should eq(2)
 		arguments['arg1'].to_s.should eq('1')
-		arguments['arg2'].should eq(['2', '3'])
+		arguments['arg2'].should eq(%w(2, 3))
 	end
 
 	it 'shows arguments as nil if there are none' do
-		result = parse("[:peopledata select 1; :]")
+		result = parse('[:people_data select 1; :]')
 
 		result[0][:data][:arguments].should be(nil)
 	end
@@ -57,7 +57,7 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'parses conditional expressions with a single condition' do
-		result = parse("[:testdb when b > 10 then bold select * from helloworld :]")
+		result = parse('[:test_db when b > 10 then bold select * from hello_world :]')
 		rules = result[0][:data][:conditional_formatting]
 		rules.length.should be(1)
 
@@ -67,7 +67,7 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'parses conditional expressions with multiple conditions' do
-		result = parse("[:testdb when b > 10 and < 20 then bold select * from helloworld :]")
+		result = parse('[:test_db when b > 10 and < 20 then bold select * from hello_world :]')
 		rules = result[0][:data][:conditional_formatting]
 		rules.length.should be(1)
 
@@ -78,7 +78,7 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'parses the existence condition' do
-		result = parse("[:testdb when b then bold select * from helloworld :]")
+		result = parse('[:test_db when b then bold select * from hello_world :]')
 		rules = result[0][:data][:conditional_formatting]
 		rules.length.should be(1)
 
@@ -87,7 +87,7 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'parses a conditional expression with a single format' do
-		result = parse("[:testdb when b > 10 then bold select * from helloworld :]")
+		result = parse('[:test_db when b > 10 then bold select * from hello_world :]')
 		rules = result[0][:data][:conditional_formatting]
 		rules.length.should be(1)
 
@@ -96,7 +96,7 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'parses a conditional expression with multiple formats' do
-		result = parse("[:testdb when b > 10 then bold,italics select * from helloworld :]")
+		result = parse('[:test_db when b > 10 then bold,italics select * from hello_world :]')
 		rules = result[0][:data][:conditional_formatting]
 		rules.length.should be(1)
 
@@ -106,7 +106,7 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'parses a conditional expression with multiple formats' do
-		result = parse("[:testdb when b > 10 then bold,italics select * from helloworld :]")
+		result = parse('[:test_db when b > 10 then bold,italics select * from hello_world :]')
 		rules = result[0][:data][:conditional_formatting]
 		rules.length.should be(1)
 
@@ -135,7 +135,7 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'parses multiple conditional expressions with multiple formats' do
-		result = parse("[:testdb when b > 10 and < 20 then bold,underline when a then green select 1; :]")
+		result = parse('[:test_db when b > 10 and < 20 then bold,underline when a then green select 1; :]')
 		rules = result[0][:data][:conditional_formatting]
 		rules.length.should be(2)
 
@@ -143,12 +143,12 @@ describe 'Ginger parser tests' do
 	end
 
 	it 'identifies a variable name specified as a data source' do
-		result = parse("[:$addresses (id=addreses) :]")
+		result = parse('[:$addresses (id=addresses) :]')
 		result[0][:data][:data_variable].should eq('addresses')
 	end
 
 	it 'identifies a variable name that contains the name of a data source' do
-		result = parse("[:{:ds:} (id=addreses) select * from people :]")
-		result[0][:data][:datasource_variable].should eq('ds')
+		result = parse('[:{:ds:} (id=addresses) select * from people :]')
+		result[0][:data][:data_source_variable].should eq('ds')
 	end
 end

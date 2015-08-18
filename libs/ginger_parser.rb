@@ -33,7 +33,7 @@ class GingerParser < Parslet::Parser
 	rule(:query_expression) { str('{:') >> variable_check.maybe >> (query_variable.absent? >> str(':}').absent? >> any).repeat.as(:pre_text) >> query_variable.maybe >> (str(':}').absent? >> any).repeat.as(:post_text) >> str(':}') }
 	rule(:query_text_fragment) { (query_expression.absent? >> query_variable.absent? >> str(':]').absent? >> any).repeat(1) }
 	rule(:query) { (query_text_fragment.as(:text) | query_expression.as(:expression) | query_variable).repeat }
-	rule(:datasource_variable) { str('{:') >> unquoted_word.as(:datasource_variable) >> str(':}') }
+	rule(:data_source_variable) { str('{:') >> unquoted_word.as(:data_source_variable) >> str(':}') }
 	
 	rule(:style_token) { unquoted_word >> (str(':') >> string).maybe }
 	rule(:styles) { (style_token.as(:value) >> whitespace >> str(',') >> whitespace).repeat >> style_token.as(:value) }
@@ -47,7 +47,7 @@ class GingerParser < Parslet::Parser
 
 	rule(:switch_case) { open_bracket >> str('case:') >> unquoted_word.as(:source) >> str(':') >> unquoted_word.as(:destination) >> whitespace >> arguments.as(:arguments) >> whitespace >> close_bracket }
 
-	rule(:sidebyside) { open_bracket >> str('sidebyside') >> str(':end').maybe.as(:end) >> whitespace >> close_bracket }
+	rule(:side_by_side) { open_bracket >> str('sidebyside') >> str(':end').maybe.as(:end) >> whitespace >> close_bracket }
 
 	rule(:text_variable) { str(':') >> unquoted_word.as(:variable) >> str(':') }
 	rule(:check_text_variable_exists) { check_query_variable_exists }
@@ -55,7 +55,7 @@ class GingerParser < Parslet::Parser
 
 	rule(:ruby_code) { str('[%') >> ((str('%]').absent? >> str('"').absent? >> str("'").absent? >> any) | quoted_string).repeat.as(:code) >> str('%]') }
 
-	rule(:expression) { text_expression.as(:text_expression) | sidebyside.as(:sidebyside) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) | ruby_code }
+	rule(:expression) { text_expression.as(:text_expression) | sidebyside.as(:side_by_side) | assign.as(:assign) | reference.as(:reference) | switch_case.as(:case) | input.as(:input) | data.as(:data) | ruby_code }
 
 	rule(:text) { (expression.absent? >> any).repeat(1) }
 

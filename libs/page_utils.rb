@@ -4,7 +4,7 @@ require 'sqlite3'
 require 'sequel'
 
 def page
-	return SQLiteStore.new
+	SQLiteStore.new
 end
 
 class SQLiteStore
@@ -15,7 +15,7 @@ class SQLiteStore
 	end
 
 	def db_file_path
-		get_base_path("data.sqlite")
+		get_base_path('data.sqlite')
 	end
 
 	def db_exists
@@ -25,17 +25,16 @@ class SQLiteStore
 	def db
 		return @db if @db != nil
 
-		@db = Sequel.sqlite(db_file_path)
-		return @db
+		Sequel.sqlite(db_file_path)
 	end
 
 	def get_version
 		 return db[:version].get(:version).to_i if db.table_exists?(:version)
-		 return -1
+		 -1
 	end
 
 	def get_base_path(file_path)
-		return get_conf['base_files_directory'] + "/#{file_path}"
+		get_conf[:base_files_directory] + "/#{file_path}"
 	end
 
 	def update_database_version(version)
@@ -59,8 +58,8 @@ class SQLiteStore
 
 			FlatFileStore.new.list.each {|id|
 				data = FlatFileStore.new.load(id)
-				title = data['title']
-				content = data['content']
+				title = data[:title]
+				content = data[:content]
 
 				db[:pages].insert(page_id: id, title: title, content: content)
 			}
@@ -78,26 +77,31 @@ class SQLiteStore
 
 	def load(page_id)
 		page = db[:pages].where(page_id: page_id).first
-		if page then to_hash(page) else nil end
+		if page
+		then
+			to_hash(page)
+		else
+			nil
+		end
 	end
 
 	def save(page_id, content)
 		existing_page = load(page_id)
 
 		if existing_page != nil
-			db[:pages].where(page_id: page_id).update(title: content['title'], content: content['content'])
+			db[:pages].where(page_id: page_id).update(title: content[:title], content: content[:content])
 		else
-			db[:pages].where(page_id: page_id).insert(page_id: page_id, title: content['title'], content: content['content'])
+			db[:pages].where(page_id: page_id).insert(page_id: page_id, title: content[:title], content: content[:content])
 		end
 
 		destroy_cache(page_id)
 	end
 
 	def to_hash(page)
-		return {
-			'title' => page[:title],
-			'page_id' => page[:page_id],
-			'content' => page[:content]
+		{
+			:title => page[:title],
+			:page_id => page[:page_id],
+			:content => page[:content]
 		}
 	end
 
@@ -113,82 +117,82 @@ end
 
 class FlatFileStore
 	def exists?(page_id)
-		File.exists?("#{get_conf['base_files_directory']}/pages/#{page_id}")
+		File.exists?("#{get_conf[:base_files_directory]}/pages/#{page_id}")
 	end
 
 	def load(page_id)
-		JSON.parse(File.read(get_page_filepath(page_id)))
+		JSON.parse(File.read(get_page_file_path(page_id)))
 	end
 
-	def get_page_filepath(page_id)
-		return "#{get_conf['base_files_directory']}/pages/#{page_id}"
+	def get_page_file_path(page_id)
+		"#{get_conf[:base_files_directory]}/pages/#{page_id}"
 	end
 
 	def save(page_id, content)
 		if page_id.include?('/') || page_id.include?('..')
-			raise "Cannot create a page containing either / or .."
+			raise 'Cannot create a page containing either / or ..'
 		end
 
-		page_filepath = get_page_filepath(page_id)
-		File.open(page_filepath, "w+") {|f| f.write JSON.dump(content) }
+		page_file_path = get_page_file_path(page_id)
+		File.open(page_file_path, 'w+') {|f| f.write JSON.dump(content) }
 
 		destroy_cache(page_id)
 	end
 
 	def list
-		return [] if !File.exists?("#{get_conf['base_files_directory']}/pages")
-		Dir.entries("#{get_conf['base_files_directory']}/pages").reject {|file| file.index('.') == 0}
+		return [] unless File.exists?("#{get_conf[:base_files_directory]}/pages")
+		Dir.entries("#{get_conf[:base_files_directory]}/pages").reject {|file| file.index('.') == 0}
 	end
 
 	def delete(page_id)
 		destroy_cache(page_id)
-		page_filepath = get_page_filepath(page_id)
-		File.delete(page_filepath) if File.exists?(page_filepath)
+		page_file_path = get_page_file_path(page_id)
+		File.delete(page_file_path) if File.exists?(page_file_path)
 	end
 end
 
 def get_edit_link(url)
 	uri = URI.parse(url)
 	uri.path += '/edit'
-	return uri.to_s
+	uri.to_s
 end
 
 def strip_quotes(val)
-	val = (val || "").to_s.strip
+	val = (val || '').to_s.strip
 
 	if (val[0] == '"' && val[val.length - 1] == '"') || (val[0] == '\'' && val[val.length - 1] == '\'')
 		return val[1...val.length-1]
 	end
 
-	return val
+	val
 end
 
 def destroy_cache(page_id)
-	cache_filepath = "#{get_conf['base_files_directory']}/cache/#{page_id}"
-	FileUtils.rm_rf(cache_filepath) if Dir.exists?(cache_filepath)
+	cache_file_path = "#{get_conf[:base_files_directory]}/cache/#{page_id}"
+	FileUtils.rm_rf(cache_file_path) if Dir.exists?(cache_file_path)
 end
 
 def get_cache_file_name(page_id, params)
-	base_path = "#{get_conf['base_files_directory']}/cache/#{page_id}"
+	base_path = "#{get_conf[:base_files_directory]}/cache/#{page_id}"
 
 	return [base_path, params] if params && params.length > 0
-	return [base_path, page_id]
+	[base_path, page_id]
 end
 
 def get_cached_page(page_id, params)
 	base_path, file_name = get_cache_file_name(page_id, params)
 
-	path = base_path + "/" + file_name
+	path = base_path + '/' + file_name
 
 	return [File.mtime(path), File.read(path)] if File.exists?(path)
-	return nil
+	nil
 end
 
 def write_cached_page(page_id, params, content)
 	base_path, file_name = get_cache_file_name(page_id, params)
-	FileUtils.mkdir_p(base_path) if !Dir.exists?(base_path)
-	path = base_path + "/" + file_name
-	File.open(path, "w+") {|f| f.write(content) }
+	FileUtils.mkdir_p(base_path) unless Dir.exists?(base_path)
+	path = base_path + '/' + file_name
+	File.open(path, 'w+') {|f| f.write(content) }
 end
 
 def parse_params(params)
@@ -196,24 +200,24 @@ def parse_params(params)
 
 	return {} if matches.length == 0
 
-	return Hash[*matches.collect {|v| v.split("=") }.flatten]
+	Hash[*matches.collect {|v| v.split('=') }.flatten]
 end
 
 module FormTag
 	def form(opts)
-		return "<form method=\"GET\" action=\"\">" + opts[:text] + " <input type='submit' value='Query'> </form>"
+		"<form method=\"GET\" action=\"\">" + opts[:text] + " <input type='submit' value='Query'> </form>"
 	end
 end
 
 def decimal_format(col)
-	return ("%.2f" % col).to_s if col.is_a? BigDecimal
-	return col.to_s
+	return ('%.2f' % col).to_s if col.is_a? BigDecimal
+	col.to_s
 end
 
 def conditional_col_format(col_name, value, original_value, rules)
 	return "|#{value.to_s}" if rules == nil || rules.length == 0
 
-	column_start = "|"
+	column_start = '|'
 	column_styles = []
 	column_value = value.to_s
 
@@ -237,10 +241,11 @@ def conditional_col_format(col_name, value, original_value, rules)
 					test_value = BigDecimal.new(test_value)
 				end
 			else
-				return "Conditional formatting does not recognize this value type."
+				return 'Conditional formatting does not recognize this value type.'
 			end
 
-			if condition[:operator] != nil then
+			if condition[:operator] != nil
+			then
 				case condition[:operator].to_s
 				when '>'
 					success = (value.to_i > test_value.to_i)
@@ -269,7 +274,7 @@ def conditional_col_format(col_name, value, original_value, rules)
 				end
 			end
 
-			break if !success
+			break unless success
 			successes += 1
 		}
 
@@ -301,6 +306,7 @@ def conditional_col_format(col_name, value, original_value, rules)
 						column_value = style_value.split('%%').join(column_value)
 						column_value += original_value if append
 						column_value = original_value + column_value if prepend
+					else
 					end
 				end
 					
@@ -310,73 +316,71 @@ def conditional_col_format(col_name, value, original_value, rules)
 
 	column_style = column_styles.length > 0 ? "{#{column_styles.join(';')}}." : ''
 
-	return "#{column_start}#{column_style} #{column_value}"
+	"#{column_start}#{column_style} #{column_value}"
 end
 
 def render_table(cols, result, markdown_table_class_added, conditional_formatting_rules)
-	view = ""
+	view = ''
 
-	view += "table(table table-compact).\n" if !markdown_table_class_added
+	view += "table(table table-compact).\n" unless markdown_table_class_added
 
-	view += "|_." + cols.collect {|col| col.to_s }.join("|_.") + "|\n"
+	view += '|_.' + cols.collect {|col| col.to_s }.join('|_.') + "|\n"
 
-	conditional_formatting_rules = [conditional_formatting_rules] if !conditional_formatting_rules.is_a?(Array)
+	conditional_formatting_rules = [conditional_formatting_rules] unless conditional_formatting_rules.is_a?(Array)
 
-	view += result.collect {|row|
-		cols.zip(row).collect {|col_name, value| conditional_col_format(col_name, decimal_format(value), value, conditional_formatting_rules) }.join + "|"
+	view + result.collect {|row|
+		cols.zip(row).collect {|col_name, value| conditional_col_format(col_name, decimal_format(value), value, conditional_formatting_rules) }.join + '|'
 	}.join("\n")
-
-	return view
 end
 
-def single_quoted(val)
+def single_quoted(_)
 	"'strip_quotes(val.to_s)'"
 end
 
-def double_quoted(val)
+def double_quoted(_)
 	"\"strip_quotes(val.to_s)\""
 end
 
-def emit_chart(chart_type, matrix, cols, name, title, xtitle, ytitle, height, width)
+def emit_chart(chart_type, matrix, cols, _, title, x_title, y_title, height, width)
 	matrix = matrix.clone
 	matrix.unshift cols
 
-	xtitle = xtitle || ""
-	ytitle = ytitle || ""
+	x_title = x_title || ''
+	y_title = y_title || ''
 
-	xtitle = strip_quotes(xtitle)
-	ytitle = strip_quotes(ytitle)
+	x_title = strip_quotes(x_title)
+	y_title = strip_quotes(y_title)
 
 	js_object_name = {:line => 'LineChart', :bar => 'ColumnChart', :pie => 'PieChart'}[chart_type]
 
 	if js_object_name == nil
-		return "[Chart type not recognized.]"
+		return '[Chart type not recognized.]'
 	end
 
-	formatted_data = "[" + matrix.collect {|row|
-		"[" + row.collect {|val|
+	formatted_data = '[' + matrix.collect {|row|
+		'[' + row.collect {|val|
 			val.is_a?(String) ? "\"#{val}\"" : val.to_s
-		}.join(',') + "]"
-	}.join(',') + "]"
+		}.join(',') + ']'
+	}.join(',') + ']'
 
 	width = strip_quotes(width) if width
 	height = strip_quotes(height) if height
 
-	options = "var options = {"
+	options = 'var options = {'
 	options += " title: '#{title}'," if title
 	options += " height: '#{height}'," if height
 	options += " width: '#{width}'," if width
 
-	options += "colors: ['#D3D3D3'], vAxis: {title: '#{ytitle}'}, hAxis: {title: '#{xtitle}'}," if [:bar, :line].include?(chart_type)
+	options += "colors: ['#D3D3D3'], vAxis: {title: '#{y_title}'}, hAxis: {title: '#{x_title}'}," if [:bar, :line].include?(chart_type)
 
-	options += "};"
+	options += '};'
 
-	width_clause = width != nil ? "width: #{width}; " : ""
-	height_clause = height != nil ? "height: #{height}; " : ""
+	width_clause = width != nil ? "width: #{width}; " : ''
+	height_clause = height != nil ? "height: #{height}; " : ''
 
 	name = (Random.new.rand * 100000).to_i.to_s
 
-	return "<script type=\"text/javascript\">
+	"<script type=\"text/javascript\">
       google.load(\"visualization\", \"1\", {packages:[\"corechart\"]});
       google.setOnLoadCallback(drawChart);
       function drawChart() {
@@ -396,4 +400,3 @@ if store.version == -1
 end
 
 store.close
-store = nil

@@ -1,5 +1,3 @@
-require "#{BASE}/libs/ContentGenerator.rb"
-
 class HTMLGenerator < ContentGenerator
 	def initialize(params)
 		super(params)
@@ -10,7 +8,7 @@ class HTMLGenerator < ContentGenerator
 		pass2 = []
 
 		parse_tree.each_with_index {|*piece_with_index|
-			piece, index = piece_with_index
+			piece, _ = piece_with_index
 
 			if piece[:data]
 				pass2 << piece_with_index
@@ -32,7 +30,6 @@ class HTMLGenerator < ContentGenerator
 			parse_tree[index] = result
 		}
 
-		result = parse_tree.collect {|piece| piece[:text] ? piece[:text] : piece.inspect }.join
-		return result
+		parse_tree.collect {|piece| piece[:text] ? piece[:text] : piece.inspect }.join
 	end
 end
