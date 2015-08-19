@@ -23,237 +23,237 @@ require 'redcloth'
 
 class Ginger < Sinatra::Base
 
-	enable :sessions
+  enable :sessions
 
-	set(:auth) do |*_|
-		condition do
-			unless session[:logged_in]
-				redirect('/login')
-			end
-		end
-	end
+  set(:auth) do |*_|
+    condition do
+      unless session[:logged_in]
+        redirect('/login')
+      end
+    end
+  end
 
-	def template_to_html(content, params)
-		converters = [
-			proc {|content_value| parse_ginger_doc(content_value) },
-			proc {|content_value| HTMLGenerator.new(params).generate(content_value) },
-			proc {|content_value|
-				redcloth = RedCloth.new(content_value)
-				redcloth.extend FormTag
-				redcloth.to_html(content_value)
-			}
-		]
+  def template_to_html(content, params)
+    converters = [
+        proc { |content_value| parse_ginger_doc(content_value) },
+        proc { |content_value| HTMLGenerator.new(params).generate(content_value) },
+        proc { |content_value|
+          redcloth = RedCloth.new(content_value)
+          redcloth.extend FormTag
+          redcloth.to_html(content_value)
+        }
+    ]
 
-		new_content = content
+    new_content = content
 
-		converters.each {|converter|
-			new_content = converter.call(new_content)
-		}
+    converters.each { |converter|
+      new_content = converter.call(new_content)
+    }
 
-		new_content
-	end
+    new_content
+  end
 
-	def store_param_data(stored_data, template_params, params, name, title, type)
-		param_name = "p_#{name}"
+  def store_param_data(stored_data, template_params, params, name, title, type)
+    param_name = "p_#{name}"
 
-		if params.has_key?(param_name) && params[param_name].length > 0
-			stored_data[:request_params][name] = {:value => params[param_name], :type => type}
-		else
-			if (template_params[:required].to_s || '').downcase == 'true'
-				raise StopEvaluation.new(title)
-			end
-		end
-	end
+    if params.has_key?(param_name) && params[param_name].length > 0
+      stored_data[:request_params][name] = {:value => params[param_name], :type => type}
+    else
+      if (template_params[:required].to_s || '').downcase == 'true'
+        raise StopEvaluation.new(title)
+      end
+    end
+  end
 
-	def add_cache_request(url)
-		return if url.index('cache=true') != nil
-		return url + '&cache=true' if url.index('?') != nil
-		url + '?cache=true'
-	end
+  def add_cache_request(url)
+    return if url.index('cache=true') != nil
+    return url + '&cache=true' if url.index('?') != nil
+    url + '?cache=true'
+  end
 
-	def remove_cache_request(url, cache_switch)
-		return '' if url == nil
-		clean_url = url.gsub(/&cache=#{cache_switch}/, '')
-		clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, '')
-		clean_url = clean_url.gsub(/cache=#{cache_switch}/, '') if clean_url.index("cache=#{cache_switch}") == 0
-		clean_url.gsub(/\?\s*$/, '')
-	end
+  def remove_cache_request(url, cache_switch)
+    return '' if url == nil
+    clean_url = url.gsub(/&cache=#{cache_switch}/, '')
+    clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, '')
+    clean_url = clean_url.gsub(/cache=#{cache_switch}/, '') if clean_url.index("cache=#{cache_switch}") == 0
+    clean_url.gsub(/\?\s*$/, '')
+  end
 
-	get '/', :auth => [:user] do
-		@list_of_pages = page.list
-		haml :page_list
-	end
+  get '/', :auth => [:user] do
+    @list_of_pages = page.list
+    haml :page_list
+  end
 
-	get '/login' do
-		haml :login
-	end
+  get '/login' do
+    haml :login
+  end
 
-	get '/explore', :auth => [:user] do
-		@page = {
-			:content => "<h2>Data Sources</h2>\n<ul>" + get_conf[:data_sources].keys.collect {|key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
-		}
+  get '/explore', :auth => [:user] do
+    @page = {
+        :content => "<h2>Data Sources</h2>\n<ul>" + get_conf[:data_sources].keys.collect { |key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
+    }
 
-		haml :show_page
-	end
+    haml :show_page
+  end
 
-	post '/login' do
-		username = params[:username]
-		password = params[:password]
+  post '/login' do
+    username = params[:username]
+    password = params[:password]
 
-		ldap_auth_result = ldap_authenticate(username, password)
+    ldap_auth_result = ldap_authenticate(username, password)
 
-		if ldap_auth_result[:status] == 'authenticated'
-			session[:logged_in] = true
-			session[:username] = username
-			redirect('/')
-		else
-			session[:logged_in] = false
-			session[:username] = ''
-			redirect('/login')
-		end
-	end
+    if ldap_auth_result[:status] == 'authenticated'
+      session[:logged_in] = true
+      session[:username] = username
+      redirect('/')
+    else
+      session[:logged_in] = false
+      session[:username] = ''
+      redirect('/login')
+    end
+  end
 
-	get '/logout' do
-		session[:logged_in] = false
-		session[:username] = ''
-		redirect('/')
-	end
+  get '/logout' do
+    session[:logged_in] = false
+    session[:username] = ''
+    redirect('/')
+  end
 
-	get '/explore/:data_source', :auth => [:user] do
+  get '/explore/:data_source', :auth => [:user] do
 
-		data_source_name = params[:data_source]
-		data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
+    data_source_name = params[:data_source]
+    data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
 
-		db = connect(data_source)
+    db = connect(data_source)
 
-		template = "h3. List of tables\n"
+    template = "h3. List of tables\n"
 
-		template += db.query_tables.collect {|table|
-			"* \"#{table.to_s}\":/explore/#{data_source_name}/#{table.to_s}"
-		}.join("\n")
+    template += db.query_tables.collect { |table|
+      "* \"#{table.to_s}\":/explore/#{data_source_name}/#{table.to_s}"
+    }.join("\n")
 
-		@page = {
-			:content => template_to_html(template, {})
-		}
+    @page = {
+        :content => template_to_html(template, {})
+    }
 
-		haml :show_page
-	end
+    haml :show_page
+  end
 
-	get '/explore/:data_source/:table', :auth => [:user]  do
-		data_source_name = params[:data_source]
-		data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
+  get '/explore/:data_source/:table', :auth => [:user] do
+    data_source_name = params[:data_source]
+    data_source = get_conf[:data_sources][param_to_sym(data_source_name)]
 
-		db = connect(data_source)
+    db = connect(data_source)
 
-		template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
+    template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
 
-		template += db.fields_for(params[:table]).collect {|field|
-			"|#{field[:name]}|#{field[:db_type]}|#{field[:primary_key.to_s]}|#{field[:allow_null]}|"
-		}.join("\n")
+    template += db.fields_for(params[:table]).collect { |field|
+      "|#{field[:name]}|#{field[:db_type]}|#{field[:primary_key.to_s]}|#{field[:allow_null]}|"
+    }.join("\n")
 
-		@page = {
-			:content => template_to_html(template, {})
-		}
+    @page = {
+        :content => template_to_html(template, {})
+    }
 
-		haml :show_page
-	end
+    haml :show_page
+  end
 
-	get '/page/:page_id/edit', :auth => [:user] do
-		@page_id = params[:page_id]
-		@page = nil
+  get '/page/:page_id/edit', :auth => [:user] do
+    @page_id = params[:page_id]
+    @page = nil
 
-		@page_title = 'Edit page'
+    @page_title = 'Edit page'
 
-		@page = page.load(@page_id)
+    @page = page.load(@page_id)
 
-		haml :edit_page
-	end
+    haml :edit_page
+  end
 
-	get '/page/:page_id/', :auth => [:user] do
-		redirect to("/page/#{params[:page_id]}")
-	end
+  get '/page/:page_id/', :auth => [:user] do
+    redirect to("/page/#{params[:page_id]}")
+  end
 
-	get '/page/:page_id', :auth => [:user] do
-		@page_id = params[:page_id]
+  get '/page/:page_id', :auth => [:user] do
+    @page_id = params[:page_id]
 
-		@page = page.load(@page_id)
+    @page = page.load(@page_id)
 
-		if @page
-			uri = URI.parse(request.url)
+    if @page
+      uri = URI.parse(request.url)
 
-			query_params = remove_cache_request(uri.query, true) || ''
-			last_modified_time, cached_page = get_cached_page(@page_id, query_params)
+      query_params = remove_cache_request(uri.query, true) || ''
+      last_modified_time, cached_page = get_cached_page(@page_id, query_params)
 
-			if params[:id]
-				parse_tree = parse_ginger_doc(@page[:content])
-				content_type 'text/plain'
+      if params[:id]
+        parse_tree = parse_ginger_doc(@page[:content])
+        content_type 'text/plain'
 
-				CSVGenerator.new(params).generate(parse_tree)
-			elsif params[:cache] != 'true' && cached_page
-				@page[:content] = cached_page
-				cached_time = Time.now - last_modified_time
+        CSVGenerator.new(params).generate(parse_tree)
+      elsif params[:cache] != 'true' && cached_page
+        @page[:content] = cached_page
+        cached_time = Time.now - last_modified_time
 
-				minute = 60
-				hour = 60 * minute
-				day = 24 * hour
+        minute = 60
+        hour = 60 * minute
+        day = 24 * hour
 
-				if cached_time / minute < 2
-					cached_time = "#{cached_time.round} seconds"
-				elsif cached_time / hour < 2
-					cached_time = "#{(cached_time / minute).round} minutes"
-				elsif cached_time / day < 2
-					cached_time = "#{(cached_time / hour).round} hours"
-				else
-					cached_time = "#{(cached_time / day).round} days"
-				end
+        if cached_time / minute < 2
+          cached_time = "#{cached_time.round} seconds"
+        elsif cached_time / hour < 2
+          cached_time = "#{(cached_time / minute).round} minutes"
+        elsif cached_time / day < 2
+          cached_time = "#{(cached_time / hour).round} hours"
+        else
+          cached_time = "#{(cached_time / day).round} days"
+        end
 
-				@cached_time = "This page was cached #{cached_time} ago."
-			else
-				begin
-					@page[:content] = template_to_html(@page[:content], params)
+        @cached_time = "This page was cached #{cached_time} ago."
+      else
+        begin
+          @page[:content] = template_to_html(@page[:content], params)
 
-					if params[:cache] == 'true'
-						write_cached_page(@page_id, query_params, @page[:content])
-						redirect to(remove_cache_request(request.url, true))
-					end
-				rescue StopEvaluation => e
-					@page[:content] = e.message
-				end
-			end
+          if params[:cache] == 'true'
+            write_cached_page(@page_id, query_params, @page[:content])
+            redirect to(remove_cache_request(request.url, true))
+          end
+        rescue StopEvaluation => e
+          @page[:content] = e.message
+        end
+      end
 
-			haml :show_page
-		else
-			@page_title = 'New page'
-			@page = {}
-			haml :edit_page
-		end
-	end
+      haml :show_page
+    else
+      @page_title = 'New page'
+      @page = {}
+      haml :edit_page
+    end
+  end
 
-	post '/page/:page_id', :auth => [:user] do
-		if params[:delete_page] == 'true'
-			page.delete(params[:page_id])
-			redirect to('/')
-		end
+  post '/page/:page_id', :auth => [:user] do
+    if params[:delete_page] == 'true'
+      page.delete(params[:page_id])
+      redirect to('/')
+    end
 
-		if params[:destroy_cache] == 'true'
-			destroy_cache(params[:page_id])
-			redirect to(request.url)
-		end
+    if params[:destroy_cache] == 'true'
+      destroy_cache(params[:page_id])
+      redirect to(request.url)
+    end
 
-		content = {
-			:title => params[:title],
-			:content => params[:content]
-		}
+    content = {
+        :title => params[:title],
+        :content => params[:content]
+    }
 
-		page_id = params[:page_id]
+    page_id = params[:page_id]
 
-		page.save(page_id, content)
+    page.save(page_id, content)
 
-		redirect to("/page/#{page_id}")
-	end
+    redirect to("/page/#{page_id}")
+  end
 
-	get '/help' do
-		help_text = <<-END
+  get '/help' do
+    help_text = <<-END
 	h2. Variables
 
 	Set the value of "var" to "b":
@@ -460,12 +460,12 @@ class Ginger < Sinatra::Base
 
 	This url specifies The line separator as $, and the quote as ". The column separator is given as %7C, which is the url encoded value of the | character. Not all symbols need to be encoded like this. It is necessary only if the application displays an error.
 
-	END
+    END
 
-		@page = {
-			:content => RedCloth.new(help_text).to_html
-		}
+    @page = {
+        :content => RedCloth.new(help_text).to_html
+    }
 
-		haml :show_page
-	end
+    haml :show_page
+  end
 end

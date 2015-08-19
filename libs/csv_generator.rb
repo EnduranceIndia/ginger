@@ -1,147 +1,147 @@
 class CSVGenerator < ContentGenerator
-	def initialize(params)
-		super(params)
-	end
+  def initialize(params)
+    super(params)
+  end
 
-	def csv_col_formatter(val, quote)
-		"#{quote}#{val}#{quote}"
-	end
+  def csv_col_formatter(val, quote)
+    "#{quote}#{val}#{quote}"
+  end
 
-	def render_csv(cols, result)
-		quote = params[:quote] || "'"
-		col_separator = params[:col_separator] || ','
-		line_separator = params[:line_separator] || "\n"
+  def render_csv(cols, result)
+    quote = params[:quote] || "'"
+    col_separator = params[:col_separator] || ','
+    line_separator = params[:line_separator] || "\n"
 
-		header = cols.collect {|col| csv_col_formatter(col, quote) }.join(col_separator)
+    header = cols.collect { |col| csv_col_formatter(col, quote) }.join(col_separator)
 
-		rows = result.collect {|row|row.collect {|col| csv_col_formatter(col, quote) }.join(col_separator) }.join(line_separator)
+    rows = result.collect { |row| row.collect { |col| csv_col_formatter(col, quote) }.join(col_separator) }.join(line_separator)
 
-		header + line_separator + rows
-	end
+    header + line_separator + rows
+  end
 
-	def process_data(parameters)
-		return text('') unless variable_checks_passed(parameters[:data])
+  def process_data(parameters)
+    return text('') unless variable_checks_passed(parameters[:data])
 
-		@markdown_table_class_added = nil
+    @markdown_table_class_added = nil
 
-		request_params = stored_data[:request_params]
-		template_params = parameters[:data][:arguments] || {}
-		
-		conf = get_conf
+    request_params = stored_data[:request_params]
+    template_params = parameters[:data][:arguments] || {}
 
-		if parameters[:data][:data_source_variable]
-			data_source_name = stored_data[:user_variables][parameters[:data][:data_source_variable].to_s]
-		else
-			data_source_name = parameters[:data][:data_source].to_s
-		end
+    conf = get_conf
 
-		data_source = conf[:data_sources][param_to_sym(data_source_name)]
-		
-		error = nil
-		
-		if !data_source
-			text('[Data source not found]')
-		else
-			connection = connect(data_source, template_params[:database])
+    if parameters[:data][:data_source_variable]
+      data_source_name = stored_data[:user_variables][parameters[:data][:data_source_variable].to_s]
+    else
+      data_source_name = parameters[:data][:data_source].to_s
+    end
 
-			query = parameters[:data][:query]
+    data_source = conf[:data_sources][param_to_sym(data_source_name)]
 
-			if !query.is_a?(Array)
-				query = query.to_s
-			else
-				query = parameters[:data][:query].collect {|item|
-					if item[:text]
-						item[:text]
-					elsif item[:variable]
-						variable_name = item[:variable]	.to_s
+    error = nil
 
-						if stored_data[:user_variables].has_key?(variable_name)
-							strip_quotes(stored_data[:user_variables][variable_name] || '')
-						elsif request_params.has_key?(variable_name)
-							strip_quotes(request_params[variable_name][:value] || '')
-						end
-					elsif item[:escaped_variable]
-						variable_name = item[:escaped_variable].to_s
-						value = nil
+    if !data_source
+      text('[Data source not found]')
+    else
+      connection = connect(data_source, template_params[:database])
 
-						if stored_data[:user_variables].has_key?(variable_name)
-							value = (stored_data[:user_variables][variable_name] || '')
-						elsif request_params.has_key?(variable_name)
-							value = request_params[variable_name][:value] || ''
-						end
+      query = parameters[:data][:query]
 
-						strip_quotes(escape(connection, strip_quotes(value)))
-					elsif item[:expression]
-						if variable_checks_passed(item[:expression])
-							variable_name = nil
-							escaped = false
+      if !query.is_a?(Array)
+        query = query.to_s
+      else
+        query = parameters[:data][:query].collect { |item|
+          if item[:text]
+            item[:text]
+          elsif item[:variable]
+            variable_name = item[:variable].to_s
 
-							variable_name = item[:expression][:variable].to_s if item[:expression][:variable]
+            if stored_data[:user_variables].has_key?(variable_name)
+              strip_quotes(stored_data[:user_variables][variable_name] || '')
+            elsif request_params.has_key?(variable_name)
+              strip_quotes(request_params[variable_name][:value] || '')
+            end
+          elsif item[:escaped_variable]
+            variable_name = item[:escaped_variable].to_s
+            value = nil
 
-							if item[:expression][:escaped_variable]
-								variable_name = item[:expression][:escaped_variable].to_s
-								escaped = true
-							end
-							
-							if variable_name
-								value = stored_data[:user_variables][variable_name]
+            if stored_data[:user_variables].has_key?(variable_name)
+              value = (stored_data[:user_variables][variable_name] || '')
+            elsif request_params.has_key?(variable_name)
+              value = request_params[variable_name][:value] || ''
+            end
 
-								if value == nil && request_params[variable_name] != nil
-									value = request_params[variable_name][:value]
-								end
+            strip_quotes(escape(connection, strip_quotes(value)))
+          elsif item[:expression]
+            if variable_checks_passed(item[:expression])
+              variable_name = nil
+              escaped = false
 
-								if value != nil
-									value = strip_quotes(escape(connection, strip_quotes(value))) if escaped
-									"#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
-								else
-									''
-								end
-							else
-								"#{to_text(item[:expression][:pre_text])}"
-							end
-						else
-							''
-						end
-					end
-				}.join
-			end
+              variable_name = item[:expression][:variable].to_s if item[:expression][:variable]
 
-			cols, result_set = [nil, nil]
-			
-			begin
-				cols, result_set = connection.query_table(query)
-			rescue Object => e
-				puts "Error running query #{query}"
-				puts "Exception message: #{e.message}"
-				puts e.backtrace
+              if item[:expression][:escaped_variable]
+                variable_name = item[:expression][:escaped_variable].to_s
+                escaped = true
+              end
 
-				error = "[Error running query: #{query}]<br />"
-				error += "[Exception message: #{e.message}]<br />"
-				error += e.backtrace.join('<br />')
-			end
+              if variable_name
+                value = stored_data[:user_variables][variable_name]
 
-			if error
-				text(error)
-			else
-				render_csv(cols, result_set)
-			end
-		end
-	end
+                if value == nil && request_params[variable_name] != nil
+                  value = request_params[variable_name][:value]
+                end
 
-	def generate(parse_tree)
-		parse_tree.each {|piece|
-			if piece[:data] == nil
-				processor = 'process_' + piece.keys[0].to_s
-				self.send(processor, piece)
-			end
-		}
-		
-		id = @params[:id].to_s
+                if value != nil
+                  value = strip_quotes(escape(connection, strip_quotes(value))) if escaped
+                  "#{to_text(item[:expression][:pre_text])}#{value}#{to_text(item[:expression][:post_text])}"
+                else
+                  ''
+                end
+              else
+                "#{to_text(item[:expression][:pre_text])}"
+              end
+            else
+              ''
+            end
+          end
+        }.join
+      end
 
-		piece = parse_tree.find {|piece|
-			piece[:data] != nil && piece[:data][:arguments] != nil && piece[:data][:arguments][:id].to_s == id
-		}
+      cols, result_set = [nil, nil]
 
-		process_data(piece)
-	end
+      begin
+        cols, result_set = connection.query_table(query)
+      rescue Object => e
+        puts "Error running query #{query}"
+        puts "Exception message: #{e.message}"
+        puts e.backtrace
+
+        error = "[Error running query: #{query}]<br />"
+        error += "[Exception message: #{e.message}]<br />"
+        error += e.backtrace.join('<br />')
+      end
+
+      if error
+        text(error)
+      else
+        render_csv(cols, result_set)
+      end
+    end
+  end
+
+  def generate(parse_tree)
+    parse_tree.each { |piece|
+      if piece[:data] == nil
+        processor = 'process_' + piece.keys[0].to_s
+        self.send(processor, piece)
+      end
+    }
+
+    id = @params[:id].to_s
+
+    piece = parse_tree.find { |piece|
+      piece[:data] != nil && piece[:data][:arguments] != nil && piece[:data][:arguments][:id].to_s == id
+    }
+
+    process_data(piece)
+  end
 end
