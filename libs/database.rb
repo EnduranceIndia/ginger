@@ -1,10 +1,3 @@
-require 'rubygems'
-require 'sequel'
-require 'pg'
-require 'mysql'
-
-require 'time'
-
 class DatabaseConnection
   def initialize(adapter, data_source)
     if data_source[:type] == 'sqlite'

@@ -1,6 +1,3 @@
-require 'rubygems'
-require 'parslet'
-
 class GingerParser < Parslet::Parser
   rule(:string_without_single_quotes) { match["^'"].repeat(1) }
   rule(:single_quoted_string) { str('\'') >> (string_without_single_quotes >> str('\\\'')).repeat >> string_without_single_quotes >> str('\'') }

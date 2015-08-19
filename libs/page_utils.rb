@@ -1,8 +1,3 @@
-require 'fileutils'
-require 'parallel'
-require 'sqlite3'
-require 'sequel'
-
 def page
   PageSQLiteStore.new
 end

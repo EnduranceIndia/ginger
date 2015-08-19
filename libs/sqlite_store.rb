@@ -1,6 +1,3 @@
-require 'fileutils'
-require 'sqlite3'
-
 class SQLiteStore
   attr_reader :version
 

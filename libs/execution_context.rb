@@ -1,5 +1,3 @@
-require 'parallel'
-
 class ExecutionContext
   def initialize(stored_data)
     @queries = []

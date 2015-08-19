@@ -1,5 +1,3 @@
-require 'erb'
-
 class ContentGenerator
   attr_accessor :stored_data, :params
 
