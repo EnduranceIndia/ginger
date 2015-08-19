@@ -85,6 +85,9 @@ class Ginger < Sinatra::Base
   end
 
   get '/login' do
+    if session[:logged_in]
+      redirect('/')
+    end
     haml :login
   end
 
