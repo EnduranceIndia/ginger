@@ -44,6 +44,11 @@ class SQLiteStore
         Text :content
       end
 
+      db.create_table(:users) do
+        primary_key :id, type: Bignum
+        String :username, unique: true
+      end
+
       db[:version].insert(0)
 
       FlatFileStore.new.list.each { |id|
