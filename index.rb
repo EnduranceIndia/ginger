@@ -6,6 +6,8 @@ BASE = File.dirname(__FILE__)
 require "#{BASE}/libs/params"
 require "#{BASE}/config"
 
+require "#{BASE}/libs/sqlite_store"
+require "#{BASE}/libs/flat_file_store"
 require "#{BASE}/libs/page_utils"
 require "#{BASE}/libs/database"
 require "#{BASE}/libs/stop_evaluation"

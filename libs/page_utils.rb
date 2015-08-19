@@ -4,76 +4,10 @@ require 'sqlite3'
 require 'sequel'
 
 def page
-  SQLiteStore.new
+  PageSQLiteStore.new
 end
 
-class SQLiteStore
-  attr_reader :version
-
-  def initialize
-    @version = get_version
-  end
-
-  def db_file_path
-    get_base_path('data.sqlite')
-  end
-
-  def db_exists
-    File.exists?(db_file_path)
-  end
-
-  def db
-    return @db if @db != nil
-
-    Sequel.sqlite(db_file_path)
-  end
-
-  def get_version
-    return db[:version].get(:version).to_i if db.table_exists?(:version)
-    -1
-  end
-
-  def get_base_path(file_path)
-    get_conf[:base_files_directory] + "/#{file_path}"
-  end
-
-  def update_database_version(version)
-    db[:version].update(:version => version)
-  end
-
-  def migrate
-    if @version == -1
-      db.create_table(:version) do
-        Bignum :version
-      end
-
-      db.create_table(:pages) do
-        primary_key :id, type: Bignum
-        String :page_id, unique: true
-        Text :title
-        Text :content
-      end
-
-      db[:version].insert(0)
-
-      FlatFileStore.new.list.each { |id|
-        data = FlatFileStore.new.load(id)
-        title = data[:title]
-        content = data[:content]
-
-        db[:pages].insert(page_id: id, title: title, content: content)
-      }
-
-      db.run 'PRAGMA journal_mode=WAL'
-    end
-  end
-
-  def close
-    if @db
-      @db.disconnect
-      @db = nil
-    end
-  end
+class PageSQLiteStore < SQLiteStore
 
   def load(page_id)
     page = db[:pages].where(page_id: page_id).first
@@ -112,42 +46,6 @@ class SQLiteStore
   def delete(page_id)
     destroy_cache(page_id)
     db[:pages].where(page_id: page_id).delete
-  end
-end
-
-class FlatFileStore
-  def exists?(page_id)
-    File.exists?("#{get_conf[:base_files_directory]}/pages/#{page_id}")
-  end
-
-  def load(page_id)
-    JSON.parse(File.read(get_page_file_path(page_id)))
-  end
-
-  def get_page_file_path(page_id)
-    "#{get_conf[:base_files_directory]}/pages/#{page_id}"
-  end
-
-  def save(page_id, content)
-    if page_id.include?('/') || page_id.include?('..')
-      raise 'Cannot create a page containing either / or ..'
-    end
-
-    page_file_path = get_page_file_path(page_id)
-    File.open(page_file_path, 'w+') { |f| f.write JSON.dump(content) }
-
-    destroy_cache(page_id)
-  end
-
-  def list
-    return [] unless File.exists?("#{get_conf[:base_files_directory]}/pages")
-    Dir.entries("#{get_conf[:base_files_directory]}/pages").reject { |file| file.index('.') == 0 }
-  end
-
-  def delete(page_id)
-    destroy_cache(page_id)
-    page_file_path = get_page_file_path(page_id)
-    File.delete(page_file_path) if File.exists?(page_file_path)
   end
 end
 
@@ -393,7 +291,7 @@ def emit_chart(chart_type, matrix, cols, _, title, x_title, y_title, height, wid
       } </script> <div id=\"#{name}\" style=\"#{width_clause} #{height_clause}\"></div>"
 end
 
-store = SQLiteStore.new
+store = PageSQLiteStore.new
 
 if store.version == -1
   store.migrate
