@@ -34,7 +34,9 @@ class DataSourceSQLiteStore < SQLiteStore
       db[:data_sources].insert(data_source_name: data_source_name)
     end
 
-    attributes.each{|attr| db[:data_source_attributes].insert(data_source_name: data_source_name, attribute_name: attr[:name], attribute_value: attr[:value]) }
+    attributes.each do |name, value|
+      db[:data_source_attributes].insert(data_source_name: data_source_name, attribute_name: name.to_s, attribute_value: value.to_s)
+    end
   end
 
   def list

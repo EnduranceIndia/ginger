@@ -20,7 +20,7 @@
             %li
               %a{:href => '/'} Home
 
-    %form{:action => '', :method => 'POST'}
+    %form{:action => "/data_source/#{@data_source_name}", :method => 'POST'}
       %p
         %h3 Data Source name
         %input.form-control{:name => 'name', :type => 'text', :value => "#{@data_source[:name]}", :style => 'width: 100%;'}

@@ -181,13 +181,14 @@ class Ginger < Sinatra::Base
 
     @page_title = 'Edit Data Source'
 
-    @data_source = @data_source.load(@data_source_name)
+    @data_source =
+        data_source.load(@data_source_name)
 
     haml :edit_data_source
   end
 
   get '/data_source/:data_source_name/', :auth => [:user] do
-    redirect to("/page/#{params[:data_source_name]}")
+    redirect to("/data_source/#{params[:data_source_name]}")
   end
 
   get '/data_source/:data_source_name', :auth => [:user] do
@@ -206,7 +207,17 @@ class Ginger < Sinatra::Base
   end
 
   post '/data_source/:data_source_name', :auth => [:user] do
+    data_source_name = params[:name]
+    attributes_string = params[:attributes]
+    attributes = {}
 
+    attributes_string.split(';').each do |attribute|
+      attribute_literals = attribute.split('=')
+      attributes[param_to_sym(attribute_literals.first)] = attribute_literals.last
+    end
+
+    data_source.save(data_source_name, attributes)
+    redirect to("/data_source/#{params[:data_source_name]}")
   end
 
   get '/page/:page_id/edit', :auth => [:user] do
