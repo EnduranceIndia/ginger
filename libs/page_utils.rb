@@ -28,9 +28,9 @@ class PageSQLiteStore < SQLiteStore
 
   def to_hash(page)
     {
-        :title => page[:title],
-        :page_id => page[:page_id],
-        :content => page[:content]
+      :title => page[:title],
+      :page_id => page[:page_id],
+      :content => page[:content]
     }
   end
 

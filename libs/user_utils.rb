@@ -26,7 +26,7 @@ class UserSQLiteStore < SQLiteStore
 
   def to_hash(user)
     {
-        :username => user[:username]
+      :username => user[:username]
     }
   end
 end
