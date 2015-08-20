@@ -13,4 +13,20 @@ class UserSQLiteStore < SQLiteStore
       db[:users].insert(username: username)
     end
   end
+
+  def load(username)
+    user = db[:users].where(username: username).first
+    if user
+    then
+      to_hash(user)
+    else
+      nil
+    end
+  end
+
+  def to_hash(user)
+    {
+        :username => user[:username]
+    }
+  end
 end
