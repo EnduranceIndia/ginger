@@ -9,16 +9,19 @@ class DataSourceSQLiteStore < SQLiteStore
     then
       # Load the attributes
       data_source_attributes = db[:data_source_attributes].where(data_source_name: data_source_name)
-      to_hash(data_source_attributes)
+      to_hash(data_source_name, data_source_attributes)
     else
       nil
     end
   end
 
-  def to_hash(attributes)
+  def to_hash(data_source_name, attributes)
     attributes_hash = {}
     attributes.each{|attr| attributes_hash[param_to_sym(attr[:attribute_name])] = attr[:attribute_value] }
-    attributes_hash
+    {
+      :name => data_source_name,
+      :attributes => attributes_hash
+    }
   end
 
   def save(data_source_name, attributes)
