@@ -27,14 +27,15 @@
             %li
               %a{:href => '/logout'} Logout
 
-    %form{:action => "/data_source/#{@data_source_name}", :method => 'POST'}
-      %p
-        %h3 Data Source name
-        %input.form-control{:name => 'name', :type => 'text', :value => "#{@data_source_name}", :style => 'width: 100%;', :readonly => 'readonly'}
-      %p
-        %h3 Attributes
-        %textarea.form-control{:name => 'attributes', :style => 'width: 100%; height: 250px;'}= @data_source[param_to_sym(@data_source_name)]
-      %input{:type => 'submit', :value => 'Submit', :class=>'btn btn-success'}
+    .container
+      %form{:action => "/data_source/#{@data_source_name}", :method => 'POST'}
+        %p
+          %h3 Data Source name
+          %input.form-control{:name => 'name', :type => 'text', :value => "#{@data_source_name}", :style => 'width: 100%;', :readonly => 'readonly'}
+        %p
+          %h3 Attributes
+          %textarea.form-control{:name => 'attributes', :style => 'width: 100%; height: 250px;'}= @data_source[param_to_sym(@data_source_name)]
+        %input{:type => 'submit', :value => 'Submit', :class=>'btn btn-success'}
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}

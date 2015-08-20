@@ -27,12 +27,13 @@
             %li
               %a{:href => '/logout'} Logout
 
-    %h2
-      Pages
-    %ul
-      - @list_of_pages.each do |page|
-        %li
-          %a{:href => "/page/#{page[:page_id]}"}=page[:title]
+    .container
+      %h2
+        Pages
+      %ul
+        - @list_of_pages.each do |page|
+          %li
+            %a{:href => "/page/#{page[:page_id]}"}=page[:title]
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}
