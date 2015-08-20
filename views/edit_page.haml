@@ -18,7 +18,9 @@
         .collapse.navbar-collapse
           %ul.nav.navbar-nav
             %li
-              %a{:href => '/'} Home
+              %a{:href => '/'} Pages
+            %li
+              %a{:href => '/explore'} Data sources
 
     %form{:action => "/page/#{@page_id}", :method => 'POST'}
       %p
