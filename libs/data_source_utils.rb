@@ -20,7 +20,7 @@ class DataSourceSQLiteStore < SQLiteStore
     attributes.each{|attr| attributes_hash[param_to_sym(attr[:attribute_name])] = attr[:attribute_value] }
     {
       :name => data_source_name,
-      :attributes => attributes_hash
+      :attributes => attr_hash_to_string(attributes_hash)
     }
   end
 
@@ -35,7 +35,9 @@ class DataSourceSQLiteStore < SQLiteStore
     end
 
     attributes.each do |name, value|
-      db[:data_source_attributes].insert(data_source_name: data_source_name, attribute_name: name.to_s, attribute_value: value.to_s)
+      unless name.nil?
+        db[:data_source_attributes].insert(data_source_name: data_source_name, attribute_name: name.to_s, attribute_value: value.to_s)
+      end
     end
   end
 
@@ -47,4 +49,25 @@ class DataSourceSQLiteStore < SQLiteStore
     db[:data_sources].where(data_source_name: data_source_name).delete
     db[:data_source_attributes].where(data_source_name: data_source_name).delete
   end
+end
+
+def attr_string_to_hash(attributes_string)
+  attributes_hash = {}
+
+  attributes_string.split(';').each do |attribute|
+    attribute_literals = attribute.split('=')
+    attributes_hash[param_to_sym(attribute_literals.first)] = attribute_literals.last
+  end
+
+  attributes_hash
+end
+
+def attr_hash_to_string(attributes_hash)
+  attributes_string = ''
+
+  attributes_hash.each do |name, value|
+    attributes_string += "#{name}=#{value};"
+  end
+
+  attributes_string
 end

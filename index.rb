@@ -209,14 +209,7 @@ class Ginger < Sinatra::Base
   post '/data_source/:data_source_name', :auth => [:user] do
     data_source_name = params[:name]
     attributes_string = params[:attributes]
-    attributes = {}
-
-    attributes_string.split(';').each do |attribute|
-      attribute_literals = attribute.split('=')
-      attributes[param_to_sym(attribute_literals.first)] = attribute_literals.last
-    end
-
-    data_source.save(data_source_name, attributes)
+    data_source.save(data_source_name, attr_string_to_hash(attributes_string))
     redirect to("/data_source/#{params[:data_source_name]}")
   end
 
