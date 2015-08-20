@@ -21,8 +21,11 @@
               %a{:href => '/'} Pages
             %li
               %a{:href => '/explore'} Data sources
+          %ul.nav.navbar-nav.navbar-right
             %li
               %a{:href=>'/help'}Help
+            %li
+              %a{:href => '/logout'} Logout
 
     %form{:action => "/data_source/#{@data_source_name}", :method => 'POST'}
       %p

@@ -32,8 +32,11 @@
                   %a{:href=>"#{add_cache_request(request.url)}"}Cache
                 %li
                   %a{:href=>"#{get_edit_link(request.url)}"}Edit
+          %ul.nav.navbar-nav.navbar-right
             %li
               %a{:href=>'/help'}Help
+            %li
+              %a{:href => '/logout'} Logout
 
     - if @cached_time
       %div{:class=>'alert alert-warning'}
