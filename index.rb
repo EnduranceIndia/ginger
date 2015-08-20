@@ -174,6 +174,22 @@ class Ginger < Sinatra::Base
     haml :show_page
   end
 
+  get '/data_source/:data_source_name/edit', :auth => [:user] do
+
+  end
+
+  get '/data_source/:data_source_name/', :auth => [:user] do
+    redirect to("/page/#{params[:data_source_name]}")
+  end
+
+  get '/data_source/:data_source_name', :auth => [:user] do
+
+  end
+
+  post '/data_source/:data_source_name', :auth => [:user] do
+
+  end
+
   get '/page/:page_id/edit', :auth => [:user] do
     @page_id = params[:page_id]
     @page = nil
