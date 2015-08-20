@@ -106,7 +106,9 @@ class Ginger < Sinatra::Base
 
   get '/explore', :auth => [:user] do
     @page = {
-        :content => "<h2>Data Sources</h2>\n<ul>" + data_sources.list.keys.collect { |key| "<li><a href=\"/explore/#{key}\">#{key}</a></li>" }.join + '</ul>'
+        :content => "<h2>Data Sources</h2>\n<ul>" +
+            data_sources.list.keys.collect { |key| "<li><a href=\"/explore/#{key}\">#{key}</a> | <a href=\"/data_source/#{key}\">View config</a></li>" }.join +
+            '</ul>'
     }
 
     haml :show_page
