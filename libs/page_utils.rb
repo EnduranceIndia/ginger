@@ -286,10 +286,3 @@ def emit_chart(chart_type, matrix, cols, _, title, x_title, y_title, height, wid
       } </script> <div id=\"#{name}\" style=\"#{width_clause} #{height_clause}\"></div>"
 end
 
-store = PageSQLiteStore.new
-
-if store.version == -1
-  store.migrate
-end
-
-store.close

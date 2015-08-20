@@ -70,3 +70,11 @@ class SQLiteStore
     end
   end
 end
+
+store = SQLiteStore.new
+
+if store.version == -1
+  store.migrate
+end
+
+store.close
