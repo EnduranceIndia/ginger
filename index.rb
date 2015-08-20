@@ -31,7 +31,7 @@ require "#{BASE}/libs/csv_generator"
 require "#{BASE}/libs/common_utils"
 require "#{BASE}/libs/execution_context"
 require "#{BASE}/libs/ldap_auth"
-
+require "#{BASE}/libs/user_utils"
 
 class Ginger < Sinatra::Base
 
@@ -118,6 +118,7 @@ class Ginger < Sinatra::Base
     ldap_auth_result = ldap_authenticate(username, password)
 
     if ldap_auth_result[:status] == 'authenticated'
+      user.add_user(username)
       session[:logged_in] = true
       session[:username] = username
       redirect('/')
