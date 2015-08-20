@@ -53,7 +53,7 @@ class ExecutionContext
     data_source_name = data_source_name || @data_source_name
 
     if @connections[data_source_name] == nil
-      data_source_info = get_conf[:data_sources][param_to_sym(data_source_name)]
+      data_source_info = data_sources.list[param_to_sym(data_source_name)]
       raise DataSourceNotFoundError.new(data_source_name) if data_source_info == nil
 
       @connections[data_source_name] = connect(data_source_info, nil)

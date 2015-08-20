@@ -2,6 +2,10 @@ def data_source
   DataSourceSQLiteStore.new
 end
 
+def data_sources
+  DataSourceSQLiteStore.new
+end
+
 class DataSourceSQLiteStore < SQLiteStore
   def load(data_source_name)
     data_source = db[:data_sources].where(data_source_name: data_source_name).first
@@ -50,9 +54,13 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def list
+    data_sources = {}
     db[:data_sources].collect do |data_source|
       data_source_name = data_source[:data_source_name]
+      data_source_attributes = get_attributes_hash(data_source_name)
+      data_sources[param_to_sym(data_source_name)] = data_source_attributes
     end
+    data_sources
   end
 
   def delete(data_source_name)

@@ -23,7 +23,7 @@
     %form{:action => "/data_source/#{@data_source_name}", :method => 'POST'}
       %p
         %h3 Data Source name
-        %input.form-control{:name => 'name', :type => 'text', :value => "#{@data_source_name}", :style => 'width: 100%;'}
+        %input.form-control{:name => 'name', :type => 'text', :value => "#{@data_source_name}", :style => 'width: 100%;', :disabled => 'disabled'}
       %p
         %h3 Attributes
         %textarea.form-control{:name => 'attributes', :style => 'width: 100%; height: 250px;'}= @data_source[param_to_sym(@data_source_name)]
