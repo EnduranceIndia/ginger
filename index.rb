@@ -199,6 +199,7 @@ class Ginger < Sinatra::Base
       haml :show_data_source
     else
       @page_title = 'New Data Source'
+      @data_source = {}
       haml :edit_data_source
     end
   end
