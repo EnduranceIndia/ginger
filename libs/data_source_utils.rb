@@ -7,26 +7,26 @@ class DataSourceSQLiteStore < SQLiteStore
     data_source = db[:data_sources].where(data_source_name: data_source_name).first
     if data_source
     then
-      data_source_attributes = db[:data_source_attributes].where(data_source_name: data_source_name)
-      to_displayable_hash(data_source_name, data_source_attributes)
+      to_displayable_hash(data_source_name, get_attributes_hash(data_source_name))
     else
       nil
     end
   end
 
-  def to_hash(data_source_name, attributes)
+  def get_attributes_hash(data_source_name)
+    data_source_attributes = db[:data_source_attributes].where(data_source_name: data_source_name)
     attributes_hash = {}
-    attributes.each{|attr| attributes_hash[param_to_sym(attr[:attribute_name])] = attr[:attribute_value] }
+    data_source_attributes.each{|attr| attributes_hash[param_to_sym(attr[:attribute_name])] = attr[:attribute_value] }
+    attributes_hash
+  end
 
+  def to_hash(data_source_name, attributes_hash)
     result = {}
     result[param_to_sym(data_source_name)] = attributes_hash
     result
   end
 
-  def to_displayable_hash(data_source_name, attributes)
-    attributes_hash = {}
-    attributes.each{|attr| attributes_hash[param_to_sym(attr[:attribute_name])] = attr[:attribute_value] }
-
+  def to_displayable_hash(data_source_name, attributes_hash)
     result = {}
     result[param_to_sym(data_source_name)] = attr_hash_to_string(attributes_hash)
     result
@@ -50,7 +50,9 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def list
-
+    db[:data_sources].collect do |data_source|
+      data_source_name = data_source[:data_source_name]
+    end
   end
 
   def delete(data_source_name)
