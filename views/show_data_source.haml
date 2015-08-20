@@ -30,9 +30,9 @@
       .row
         .col-md-12
           .well.well-lg
-            %h1= @data_source[:name]
+            %h1= @data_source_name
             %h4 Attributes:
-            %h5= @data_source[:attributes]
+            %h5= @data_source[param_to_sym(@data_source_name)]
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}
