@@ -37,11 +37,14 @@ class SQLiteStore
         Bignum :version
       end
 
+      db[:version].insert(0)
+
       db.create_table(:pages) do
         primary_key :id, type: Bignum
         String :page_id, unique: true
         Text :title
         Text :content
+        String :creator
       end
 
       db.create_table(:users) do
@@ -49,7 +52,18 @@ class SQLiteStore
         String :username, unique: true
       end
 
-      db[:version].insert(0)
+      db.create_table(:data_sources) do
+        primary_key :id, type: Bignum
+        String :data_source_name, unique: true
+        String :creator
+      end
+
+      db.create_table(:data_source_attributes) do
+        String :data_source_name
+        String :attribute_name
+        String :attribute_value
+        primary_key :data_source_name, :attribute_name
+      end
 
       FlatFileStore.new.list.each { |id|
         data = FlatFileStore.new.load(id)
