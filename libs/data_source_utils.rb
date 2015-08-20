@@ -71,3 +71,9 @@ def attr_hash_to_string(attributes_hash)
 
   attributes_string
 end
+
+def get_data_source_edit_link(url)
+  uri = URI.parse(url)
+  uri.path += '/edit'
+  uri.to_s
+end
