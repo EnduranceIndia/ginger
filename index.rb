@@ -32,6 +32,7 @@ require "#{BASE}/libs/common_utils"
 require "#{BASE}/libs/execution_context"
 require "#{BASE}/libs/ldap_auth"
 require "#{BASE}/libs/user_utils"
+require "#{BASE}/libs/data_source_utils"
 
 class Ginger < Sinatra::Base
 
@@ -175,7 +176,14 @@ class Ginger < Sinatra::Base
   end
 
   get '/data_source/:data_source_name/edit', :auth => [:user] do
+    @data_source_name = params[:data_source_name]
+    @data_source = nil
 
+    @page_title = 'Edit Data Source'
+
+    @data_source = @data_source.load(@data_source_name)
+
+    haml :edit_data_source
   end
 
   get '/data_source/:data_source_name/', :auth => [:user] do
@@ -183,7 +191,16 @@ class Ginger < Sinatra::Base
   end
 
   get '/data_source/:data_source_name', :auth => [:user] do
+    @data_source_name = params[:data_source_name]
 
+    @data_source = data_source.load(@data_source_name)
+
+    if @data_source
+      haml :show_data_source
+    else
+      @page_title = 'New Data Source'
+      haml :edit_data_source
+    end
   end
 
   post '/data_source/:data_source_name', :auth => [:user] do
