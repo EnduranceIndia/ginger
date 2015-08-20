@@ -200,6 +200,7 @@ class Ginger < Sinatra::Base
     else
       @page_title = 'New Data Source'
       @data_source = {}
+      @data_source[:name] = @data_source_name
       haml :edit_data_source
     end
   end
