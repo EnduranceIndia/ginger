@@ -12,7 +12,7 @@
     .navbar.navbar-inverse.navbar-fixed-top
       .container#header
         .navbar-header
-          %button.navbar-toggle{'data-target' => '.navbar-collapse', 'data-toggle' => 'collapse', :type => 'button'}
+          %button.navbar-toggle{'data-target'.to_sym => '.navbar-collapse', 'data-toggle'.to_sym => 'collapse', :type => 'button'}
             %span.icon-bar
             %span.icon-bar
             %span.icon-bar
@@ -22,7 +22,7 @@
             %li
               %a{:href => '/'} Home
             %li{:class=>'dropdown'}
-              %a{:href => '#', :class=>'dropdown-toggle', 'data-toggle'=>'dropdown'}
+              %a{:href => '#', :class=>'dropdown-toggle', 'data-toggle'.to_sym=>'dropdown'}
                 Page
                 %b{:class=>'caret'}
               %ul{:class=>'dropdown-menu'}

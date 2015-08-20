@@ -10,7 +10,7 @@
     .navbar.navbar-inverse.navbar-fixed-top
       .container#header
       .navbar-header
-        %button.navbar-toggle{'data-target' => '.navbar-collapse', 'data-toggle' => 'collapse', :type => 'button'}
+        %button.navbar-toggle{'data-target'.to_sym => '.navbar-collapse', 'data-toggle'.to_sym => 'collapse', :type => 'button'}
           %span.icon-bar
           %span.icon-bar
           %span.icon-bar
@@ -26,3 +26,6 @@
               %input.form-control{:type => 'password', :placeholder => 'LDAP password', :name => 'password'}
             .form-group
               %input.form-control.btn.btn-primary{:type => 'submit', :value => 'Login'}
+
+    %script{:src=>'/js/jquery-2.0.3.min.js'}
+    %script{:src=>'/bootstrap/js/bootstrap.min.js'}
