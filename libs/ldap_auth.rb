@@ -2,6 +2,10 @@ def ldap_authenticate(username, password)
   name, domain = username.split('@')
   auth_conf = get_conf[:authentication][param_to_sym(domain)]
 
+  if name == '' or password == ''
+    return {status: 'failed'}
+  end
+
   if auth_conf
     if auth_conf[:type] == 'ldap'
       ldap = Net::LDAP.new
