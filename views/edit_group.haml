@@ -1,0 +1,38 @@
+!!!
+%html
+  %head
+    %meta{:name =>  'viewport', :content => 'width=device-width, initial-scale=1.0'}
+    %title= @page_title
+    %link{:href => '/bootstrap/css/bootstrap.min.css', :rel => 'stylesheet', :media => 'screen'}
+    %link{:href => '/css/common.css', :rel => 'stylesheet', :media => 'screen'}
+
+  %body
+    .navbar.navbar-inverse.navbar-fixed-top
+      .container#header
+        .navbar-header
+          %button.navbar-toggle{'data-target'.to_sym => '.navbar-collapse', 'data-toggle'.to_sym => 'collapse', :type => 'button'}
+            %span.icon-bar
+            %span.icon-bar
+            %span.icon-bar
+          %a.navbar-brand{:href => '/'} Ginger
+        .collapse.navbar-collapse
+          %ul.nav.navbar-nav
+            %li
+              %a{:href => '/'} Pages
+            %li
+              %a{:href => '/explore'} Data sources
+          %ul.nav.navbar-nav.navbar-right
+            %li
+              %a{:href=>'/help'}Help
+            %li
+              %a{:href => '/logout'} Logout
+
+    .container
+      %form{:method => 'POST'}
+        %p
+          %h3 Group name
+          %input.form-control{:name => 'group_name', :type => 'text', :value => "#{@group_name}", :style => 'width: 100%;', :readonly => 'readonly'}
+        %input{:type => 'submit', :value => 'Submit', :class=>'btn btn-success'}
+
+    %script{:src=>'/js/jquery-2.0.3.min.js'}
+    %script{:src=>'/bootstrap/js/bootstrap.min.js'}

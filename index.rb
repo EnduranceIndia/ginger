@@ -33,6 +33,7 @@ require "#{BASE}/libs/execution_context"
 require "#{BASE}/libs/ldap_auth"
 require "#{BASE}/libs/user_utils"
 require "#{BASE}/libs/data_source_utils"
+require "#{BASE}/libs/group_utils"
 
 class Ginger < Sinatra::Base
 
@@ -313,19 +314,31 @@ class Ginger < Sinatra::Base
 
   end
 
-  get '/group/:group_name/', :auth => [:user] do
+  get '/groups/:group_name/', :auth => [:user] do
     redirect to("/group/#{params[:group_name]}")
   end
 
-  get '/group/:group_name', :auth => [:user] do
+  get '/groups/:group_name', :auth => [:user] do
+    @group_name = params[:group_name]
+
+    @group = group.load(@group_name)
+
+    if @group
+    then
+      haml :show_group
+    else
+      @page_title = 'New Group'
+      @group = {}
+      @group[:group_name] = @group_name
+      haml :edit_group
+    end
+  end
+
+  get '/groups/:group_name/edit', :auth => [:user] do
 
   end
 
-  get '/group/:group_name/edit', :auth => [:user] do
-
-  end
-
-  post '/group/:group_name', :auth => [:user] do
+  post '/groups/:group_name', :auth => [:user] do
     redirect to("/group/#{params[:group_name]}")
   end
 
