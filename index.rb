@@ -309,6 +309,26 @@ class Ginger < Sinatra::Base
     redirect to("/page/#{page_id}")
   end
 
+  get '/groups', :auth => [:user] do
+
+  end
+
+  get '/group/:group_name/', :auth => [:user] do
+    redirect to("/group/#{params[:group_name]}")
+  end
+
+  get '/group/:group_name', :auth => [:user] do
+
+  end
+
+  get '/group/:group_name/edit', :auth => [:user] do
+
+  end
+
+  post '/group/:group_name', :auth => [:user] do
+    redirect to("/group/#{params[:group_name]}")
+  end
+
   get '/help', :auth => [:user] do
     help_text = <<-END
 h2. Variables
