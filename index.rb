@@ -311,7 +311,13 @@ class Ginger < Sinatra::Base
   end
 
   get '/groups', :auth => [:user] do
+    @page = {
+        :content => "<h2>Groups</h2>\n<ul>" +
+            group.list.collect { |group_name| "<li><a href=\"/groups/#{group_name}\">#{key}</a></li>" }.join +
+            '</ul>'
+    }
 
+    haml :show_page
   end
 
   get '/groups/:group_name/', :auth => [:user] do
