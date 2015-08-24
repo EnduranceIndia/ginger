@@ -341,7 +341,14 @@ class Ginger < Sinatra::Base
   end
 
   get '/groups/:group_name/edit', :auth => [:user] do
+    @group_name = params[:group_name]
+    @group = nil
 
+    @page_title = 'Edit Group'
+
+    @group = page.load(@page_id)
+
+    haml :edit_group
   end
 
   post '/groups/:group_name', :auth => [:user] do
