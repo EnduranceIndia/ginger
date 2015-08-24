@@ -346,14 +346,15 @@ class Ginger < Sinatra::Base
 
     @page_title = 'Edit Group'
 
-    @group = page.load(@page_id)
+    @group = group.load(@group_name)
 
     haml :edit_group
   end
 
   post '/groups/:group_name', :auth => [:user] do
     group_name = params[:group_name]
-    group.save(group_name)
+    members_string = params[:members]
+    group.save(group_name, members_string_to_list(members_string))
     redirect to("/groups/#{params[:group_name]}")
   end
 

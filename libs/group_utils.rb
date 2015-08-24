@@ -9,24 +9,48 @@ class GroupSQLiteStore < SQLiteStore
 
     if group
     then
-      to_hash(group)
+      to_displayable_hash(group, get_members_list(group_name))
     else
       nil
     end
   end
 
-  def to_hash(group)
+  def get_members_list(group_name)
+    group_members = db[:group_users].where(group_name: group_name)
+    members_list = []
+    group_members.each { |mapping| members_list.push(mapping[:username]) }
+    self.close
+    members_list
+  end
+
+  def to_hash(group, members_list)
     {
-      :group_name => group[:group_name]
+      :group_name => group[:group_name],
+      :members_list => members_list
     }
   end
 
-  def save(group_name)
+  def to_displayable_hash(group, members_list)
+    {
+        :group_name => group[:group_name],
+        :members_list => members_list_to_string(members_list)
+    }
+  end
+
+  def save(group_name, members)
     existing_group = load(group_name)
 
     if existing_group == nil
     then
       db[:groups].insert(group_name: group_name)
+    else
+      db[:group_users].where(group_name: group_name).delete
+    end
+
+    members.each do |member_name|
+      unless member_name.nil?
+        db[:group_users].insert(group_name: group_name, username: member_name.to_s)
+      end
     end
 
     self.close
@@ -41,6 +65,32 @@ class GroupSQLiteStore < SQLiteStore
     self.close
     groups
   end
+
+  def delete(group_name)
+    db[:groups].where(group_name: group_name).delete
+    db[:group_user].where(group_name: group_name).delete
+    self.close
+  end
+end
+
+def members_string_to_list(members_string)
+  members_list = []
+
+  members_string.split(';').each do |member_name|
+    members_list.push(member_name)
+  end
+
+  members_list
+end
+
+def members_list_to_string(members_list)
+  members_string = ''
+
+  members_list.each do |member_name|
+    members_string += "#{member_name};"
+  end
+
+  members_string
 end
 
 def get_group_edit_link(url)

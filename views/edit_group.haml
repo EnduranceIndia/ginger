@@ -34,6 +34,9 @@
         %p
           %h3 Group name
           %input.form-control{:name => 'group_name', :type => 'text', :value => "#{@group_name}", :style => 'width: 100%;', :readonly => 'readonly'}
+        %p
+          %h3 Members
+          %textarea.form-control{:name => 'members', :style => 'width: 100%; height: 250px;'}= @group[:members_list]
         %input{:type => 'submit', :value => 'Submit', :class=>'btn btn-success'}
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
