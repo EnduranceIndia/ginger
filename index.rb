@@ -313,7 +313,7 @@ class Ginger < Sinatra::Base
   get '/groups', :auth => [:user] do
     @page = {
         :content => "<h2>Groups</h2>\n<ul>" +
-            group.list.collect { |group_name| "<li><a href=\"/groups/#{group_name}\">#{key}</a></li>" }.join +
+            group.list.collect { |group_name| "<li><a href=\"/groups/#{group_name}\">#{group_name}</a></li>" }.join +
             '</ul>'
     }
 
@@ -345,7 +345,9 @@ class Ginger < Sinatra::Base
   end
 
   post '/groups/:group_name', :auth => [:user] do
-    redirect to("/group/#{params[:group_name]}")
+    group_name = params[:group_name]
+    group.save(group_name)
+    redirect to("/groups/#{params[:group_name]}")
   end
 
   get '/help', :auth => [:user] do

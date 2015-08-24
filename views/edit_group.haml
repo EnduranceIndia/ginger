@@ -28,7 +28,7 @@
               %a{:href => '/logout'} Logout
 
     .container
-      %form{:method => 'POST'}
+      %form{:action => "/groups/#{@group_name}", :method => 'POST'}
         %p
           %h3 Group name
           %input.form-control{:name => 'group_name', :type => 'text', :value => "#{@group_name}", :style => 'width: 100%;', :readonly => 'readonly'}
