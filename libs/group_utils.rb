@@ -42,3 +42,9 @@ class GroupSQLiteStore < SQLiteStore
     groups
   end
 end
+
+def get_group_edit_link(url)
+  uri = URI.parse(url)
+  uri.path += '/edit'
+  uri.to_s
+end
