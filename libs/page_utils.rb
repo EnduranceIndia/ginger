@@ -6,6 +6,7 @@ class PageSQLiteStore < SQLiteStore
 
   def load(page_id)
     page = db[:pages].where(page_id: page_id).first
+    self.close
     if page
     then
       to_hash(page)
@@ -23,6 +24,7 @@ class PageSQLiteStore < SQLiteStore
       db[:pages].where(page_id: page_id).insert(page_id: page_id, title: content[:title], content: content[:content])
     end
 
+    self.close
     destroy_cache(page_id)
   end
 
@@ -35,12 +37,15 @@ class PageSQLiteStore < SQLiteStore
   end
 
   def list
-    db[:pages].collect { |page| {page_id: page[:page_id], title: page[:title]} }.sort { |page1, page2| page1[:title] <=> page2[:title] }
+    list = db[:pages].collect { |page| {page_id: page[:page_id], title: page[:title]} }.sort { |page1, page2| page1[:title] <=> page2[:title] }
+    self.close
+    list
   end
 
   def delete(page_id)
     destroy_cache(page_id)
     db[:pages].where(page_id: page_id).delete
+    self.close
   end
 end
 

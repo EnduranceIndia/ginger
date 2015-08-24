@@ -14,13 +14,19 @@ class SQLiteStore
   end
 
   def db
-    return @db if @db != nil
-    Sequel.sqlite(db_file_path)
+    @db = Sequel.sqlite(db_file_path) if @db.equal?(nil)
+    @db
   end
 
   def get_version
-    return db[:version].get(:version).to_i if db.table_exists?(:version)
-    -1
+    if db.table_exists?(:version)
+      version = db[:version].get(:version).to_i
+    else
+      version = -1
+    end
+
+    self.close
+    version
   end
 
   def get_base_path(file_path)
@@ -29,6 +35,7 @@ class SQLiteStore
 
   def update_database_version(version)
     db[:version].update(:version => version)
+    self.close
   end
 
   def migrate
@@ -74,6 +81,8 @@ class SQLiteStore
       }
 
       db.run 'PRAGMA journal_mode=WAL'
+
+      self.close
     end
   end
 
@@ -90,5 +99,3 @@ store = SQLiteStore.new
 if store.version == -1
   store.migrate
 end
-
-store.close

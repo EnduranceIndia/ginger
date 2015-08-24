@@ -5,17 +5,20 @@ end
 class UserSQLiteStore < SQLiteStore
   def exists(username)
     user = db[:users].where(username: username).first
+    self.close
     user != nil
   end
 
   def add_user(username)
     unless exists(username)
       db[:users].insert(username: username)
+      self.close
     end
   end
 
   def load(username)
     user = db[:users].where(username: username).first
+    self.close
     if user
     then
       to_hash(user)

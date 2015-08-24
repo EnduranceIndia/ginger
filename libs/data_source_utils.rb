@@ -9,6 +9,7 @@ end
 class DataSourceSQLiteStore < SQLiteStore
   def load(data_source_name)
     data_source = db[:data_sources].where(data_source_name: data_source_name).first
+    self.close
     if data_source
     then
       to_displayable_hash(data_source_name, get_attributes_hash(data_source_name))
@@ -21,6 +22,7 @@ class DataSourceSQLiteStore < SQLiteStore
     data_source_attributes = db[:data_source_attributes].where(data_source_name: data_source_name)
     attributes_hash = {}
     data_source_attributes.each{|attr| attributes_hash[param_to_sym(attr[:attribute_name])] = attr[:attribute_value] }
+    self.close
     attributes_hash
   end
 
@@ -51,6 +53,8 @@ class DataSourceSQLiteStore < SQLiteStore
         db[:data_source_attributes].insert(data_source_name: data_source_name, attribute_name: name.to_s, attribute_value: value.to_s)
       end
     end
+
+    self.close
   end
 
   def list
@@ -60,12 +64,14 @@ class DataSourceSQLiteStore < SQLiteStore
       data_source_attributes = get_attributes_hash(data_source_name)
       data_sources[param_to_sym(data_source_name)] = data_source_attributes
     end
+    self.close
     data_sources
   end
 
   def delete(data_source_name)
     db[:data_sources].where(data_source_name: data_source_name).delete
     db[:data_source_attributes].where(data_source_name: data_source_name).delete
+    self.close
   end
 end
 
