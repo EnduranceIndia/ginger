@@ -59,6 +59,18 @@ class SQLiteStore
         String :username, unique: true
       end
 
+      db.create_table(:groups) do
+        primary_key :id, type: Bignum
+        String :group_name, unique: true
+        String :creator
+      end
+
+      db.create_table(:group_users) do
+        String :group_name
+        String :username
+        primary_key :group_name, :username
+      end
+
       db.create_table(:data_sources) do
         primary_key :id, type: Bignum
         String :data_source_name, unique: true
