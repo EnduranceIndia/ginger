@@ -100,7 +100,9 @@ class PageSQLiteStore < SQLiteStore
   end
 
   def list_shared_with_user_groups(username)
-
+    pages = db[:pages].where(:page_id => db[:page_permissions].where(entity: 'group').where(:entity_name => db[:group_users].where(username: username).select(:group_name)).select(:page_id))
+    self.close
+    to_list(pages)
   end
 
   def to_list(pages)

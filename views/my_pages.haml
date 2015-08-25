@@ -70,6 +70,10 @@
       %h3
         Pages shared with my Groups
       %hr
+      %ul
+        - @my_group_pages.each do |page|
+          %li
+            %a{:href => "/page/#{page[:page_id]}"}=page[:title]
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}
