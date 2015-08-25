@@ -349,15 +349,15 @@ class Ginger < Sinatra::Base
   end
 
   get '/my/groups', :auth => [:user] do
-
+    haml :my_groups
   end
 
   get '/my/data_sources', :auth =>  [:user] do
-
+    haml :my_data_sources
   end
 
   get '/my/pages', :auth => [:user] do
-
+    haml :my_pages
   end
 
   get '/help', :auth => [:user] do
