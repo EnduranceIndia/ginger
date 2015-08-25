@@ -60,6 +60,14 @@
         %p
           %h3 Content
           %textarea.form-control{:name => 'content', :style => 'width: 100%; height: 250px;'}= @page[:content]
+        %p
+          %h3 Permissions
+          %b User:
+          %textarea.form-control{:name => 'user_permissions', :style => 'width: 100%; height: 40px;'}
+          %b Group:
+          %textarea.form-control{:name => 'group_permissions', :style => 'width: 100%; height: 40px'}
+          %b All:
+          %textarea.form-control{:name => 'public_permissions', :style => 'width: 100%; height: 40px'}
         %input{:type => 'submit', :value => 'Submit', :class=>'btn btn-success'}
         %button{:type=>'button', :class=>'btn btn-danger', 'data-toggle'.to_sym=>'modal', 'data-target'.to_sym=>'#confirm-delete'}Delete
     %script{:src=>'/js/jquery-2.0.3.min.js'}

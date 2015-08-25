@@ -59,7 +59,15 @@
           %input.form-control{:name => 'name', :type => 'text', :value => "#{@data_source_name}", :style => 'width: 100%;', :readonly => 'readonly'}
         %p
           %h3 Attributes
-          %textarea.form-control{:name => 'attributes', :style => 'width: 100%; height: 250px;'}= @data_source[param_to_sym(@data_source_name)]
+          %textarea.form-control{:name => 'attributes', :style => 'width: 100%; height: 100px;'}= @data_source[param_to_sym(@data_source_name)]
+        %p
+          %h3 Permissions
+          %b User:
+          %textarea.form-control{:name => 'user_permissions', :style => 'width: 100%; height: 40px;'}
+          %b Group:
+          %textarea.form-control{:name => 'group_permissions', :style => 'width: 100%; height: 40px'}
+          %b All:
+          %textarea.form-control{:name => 'public_permissions', :style => 'width: 100%; height: 40px'}
         %input{:type => 'submit', :value => 'Submit', :class=>'btn btn-success'}
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
