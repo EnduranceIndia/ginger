@@ -43,9 +43,9 @@ class DataSourceSQLiteStore < SQLiteStore
 
     if existing_data_source != nil
     then
-      db[:data_source_attributes].where(data_source_name: data_source_name, creator: creator).delete
+      db[:data_source_attributes].where(data_source_name: data_source_name).delete
     else
-      db[:data_sources].insert(data_source_name: data_source_name)
+      db[:data_sources].insert(data_source_name: data_source_name, creator: creator)
     end
 
     attributes.each do |name, value|
@@ -66,6 +66,18 @@ class DataSourceSQLiteStore < SQLiteStore
     end
     self.close
     data_sources
+  end
+
+  def list_created_by(username)
+    data_sources_hash = {}
+    data_sources = db[:data_sources].where(creator: username)
+    data_sources.each do |data_source|
+      data_source_name = data_source[:data_source_name]
+      data_source_attributes = get_attributes_hash(data_source_name)
+      data_sources_hash[param_to_sym(data_source_name)] = data_source_attributes
+    end
+    self.close
+    data_sources_hash
   end
 
   def delete(data_source_name)

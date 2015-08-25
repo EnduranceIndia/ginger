@@ -55,6 +55,11 @@
     .container
       %h2
         Data Sources I created
+      %ul
+        - @my_created_data_sources.each do |data_source|
+          %li
+            %a{:href => "/explore/#{data_source}"}=data_source
+            %a{:href => "/data_source/#{data_source}"}(View Config)
       %h2
         Data Sources of my Groups
 
