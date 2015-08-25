@@ -81,16 +81,15 @@ class PageSQLiteStore < SQLiteStore
   end
 
   def list
-    list = db[:pages].collect { |page| {page_id: page[:page_id], title: page[:title]} }.sort { |page1, page2| page1[:title] <=> page2[:title] }
+    pages = db[:pages].where(:page_id => db[:page_permissions].where(entity: 'all').where(entity_name: 'all').select(:page_id))
     self.close
-    list
+    to_list(pages)
   end
 
   def list_created_by(username)
     pages = db[:pages].where(creator: username)
-    pages_list = pages.each { |page| {page_id: page[:page_id], title: page[:title]} }.sort { |page1, page2| page1[:title] <=> page2[:title] }
     self.close
-    pages_list
+    to_list(pages)
   end
 
   def list_shared_with(username)
@@ -99,6 +98,10 @@ class PageSQLiteStore < SQLiteStore
 
   def list_shared_with_user_groups(username)
 
+  end
+
+  def to_list(pages)
+    pages.each { |page| {page_id: page[:page_id], title: page[:title]} }.sort { |page1, page2| page1[:title] <=> page2[:title] }
   end
 
   def delete(page_id)
