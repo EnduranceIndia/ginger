@@ -42,7 +42,7 @@ class Ginger < Sinatra::Base
   set(:auth) do |*_|
     condition do
       unless session[:logged_in]
-        redirect('/login')
+        redirect to('/login')
       end
     end
   end
@@ -100,7 +100,7 @@ class Ginger < Sinatra::Base
 
   get '/login' do
     if session[:logged_in]
-      redirect('/')
+      redirect to('/')
     end
     haml :login
   end
@@ -115,18 +115,18 @@ class Ginger < Sinatra::Base
       user.add_user(username)
       session[:logged_in] = true
       session[:username] = username
-      redirect('/')
+      redirect to('/')
     else
       session[:logged_in] = false
       session[:username] = ''
-      redirect('/login')
+      redirect to('/login')
     end
   end
 
   get '/logout' do
     session[:logged_in] = false
     session[:username] = ''
-    redirect('/')
+    redirect to('/')
   end
 
   get '/explore', :auth => [:user] do
