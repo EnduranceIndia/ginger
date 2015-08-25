@@ -53,8 +53,9 @@
               %a{:href => '/logout'} Logout
 
     .container
-      %h2
+      %h3
         All Data Sources
+      %hr
       %ul
         - @data_source_list.each do |data_source|
           %li

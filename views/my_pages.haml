@@ -53,14 +53,19 @@
               %a{:href => '/logout'} Logout
 
     .container
-      %h2
+      %h3
         Pages I created
+      %hr
       %ul
         - @my_created_pages.each do |page|
           %li
             %a{:href => "/page/#{page[:page_id]}"}=page[:title]
-      %h2
-        Pages of my Groups
+      %h3
+        Pages shared with me
+      %hr
+      %h3
+        Pages shared with my Groups
+      %hr
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}

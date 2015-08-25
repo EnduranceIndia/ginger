@@ -53,16 +53,21 @@
               %a{:href => '/logout'} Logout
 
     .container
-      %h2
+      %h3
         Data Sources I created
+      %hr
       %ul
         - @my_created_data_sources.each do |data_source|
           %li
             %a{:href => "/explore/#{data_source}"}=data_source
             |
             %a{:href => "/data_source/#{data_source}"}View Config
-      %h2
-        Data Sources of my Groups
+      %h3
+        Data Source shared with me
+      %hr
+      %h3
+        Data Sources shared with my Groups
+      %hr
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}

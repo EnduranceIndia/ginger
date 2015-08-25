@@ -53,14 +53,16 @@
               %a{:href => '/logout'} Logout
 
     .container
-      %h2
+      %h3
         Groups I created
+      %hr
       %ul
         - @my_created_groups.each do |group|
           %li
             %a{:href => "/groups/#{group}"}=group
-      %h2
+      %h3
         Groups I am in
+      %hr
       %ul
         - @my_groups.each do |group|
           %li
