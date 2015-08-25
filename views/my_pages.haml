@@ -55,6 +55,10 @@
     .container
       %h2
         Pages I created
+      %ul
+        - @my_created_pages.each do |page|
+          %li
+            %a{:href => "/page/#{page[:page_id]}"}=page[:title]
       %h2
         Pages of my Groups
 

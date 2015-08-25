@@ -362,6 +362,7 @@ class Ginger < Sinatra::Base
   end
 
   get '/my/pages', :auth => [:user] do
+    @my_created_pages = page.list_created_by(session[:username])
     haml :my_pages
   end
 

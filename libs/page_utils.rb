@@ -42,6 +42,13 @@ class PageSQLiteStore < SQLiteStore
     list
   end
 
+  def list_created_by(username)
+    pages = db[:pages].where(creator: username)
+    pages_list = pages.each { |page| {page_id: page[:page_id], title: page[:title]} }.sort { |page1, page2| page1[:title] <=> page2[:title] }
+    self.close
+    pages_list
+  end
+
   def delete(page_id)
     destroy_cache(page_id)
     db[:pages].where(page_id: page_id).delete
