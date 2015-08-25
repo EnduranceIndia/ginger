@@ -105,16 +105,6 @@ class Ginger < Sinatra::Base
     haml :login
   end
 
-  get '/explore', :auth => [:user] do
-    @page = {
-        :content => "<h2>Data Sources</h2>\n<ul>" +
-            data_sources.list.keys.collect { |key| "<li><a href=\"/explore/#{key}\">#{key}</a> | <a href=\"/data_source/#{key}\">View config</a></li>" }.join +
-            '</ul>'
-    }
-
-    haml :show_page
-  end
-
   post '/login' do
     username = params[:username]
     password = params[:password]
@@ -137,6 +127,16 @@ class Ginger < Sinatra::Base
     session[:logged_in] = false
     session[:username] = ''
     redirect('/')
+  end
+
+  get '/explore', :auth => [:user] do
+    @page = {
+        :content => "<h2>Data Sources</h2>\n<ul>" +
+            data_sources.list.keys.collect { |key| "<li><a href=\"/explore/#{key}\">#{key}</a> | <a href=\"/data_source/#{key}\">View config</a></li>" }.join +
+            '</ul>'
+    }
+
+    haml :show_page
   end
 
   get '/explore/:data_source', :auth => [:user] do
