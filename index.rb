@@ -130,13 +130,8 @@ class Ginger < Sinatra::Base
   end
 
   get '/explore', :auth => [:user] do
-    @page = {
-        :content => "<h2>Data Sources</h2>\n<ul>" +
-            data_sources.list.keys.collect { |key| "<li><a href=\"/explore/#{key}\">#{key}</a> | <a href=\"/data_source/#{key}\">View config</a></li>" }.join +
-            '</ul>'
-    }
-
-    haml :show_page
+    @data_source_list = data_sources.list.keys
+    haml :data_source_list
   end
 
   get '/explore/:data_source', :auth => [:user] do
@@ -311,13 +306,8 @@ class Ginger < Sinatra::Base
   end
 
   get '/groups', :auth => [:user] do
-    @page = {
-        :content => "<h2>Groups</h2>\n<ul>" +
-            group.list.collect { |group_name| "<li><a href=\"/groups/#{group_name}\">#{group_name}</a></li>" }.join +
-            '</ul>'
-    }
-
-    haml :show_page
+    @group_list = group.list
+    haml :group_list
   end
 
   get '/groups/:group_name/', :auth => [:user] do
