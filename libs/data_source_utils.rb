@@ -119,10 +119,6 @@ class DataSourceSQLiteStore < SQLiteStore
     to_list_hash(data_sources)
   end
 
-  def list_shared_with_group(group_name)
-    group_name = param_to_sym(group_name).to_s
-  end
-
   def to_list_hash(data_sources)
     data_sources_hash = {}
     data_sources.each do |data_source|
