@@ -208,9 +208,9 @@ class Ginger < Sinatra::Base
     attributes_string = params[:attributes]
 
     permissions = {
-        :user => params[:user_permissions],
-        :group => params[:group_permissions],
-        :all => params[:all_permissions]
+        :user => permissions_string_to_hash(params[:user_permissions]),
+        :group => permissions_string_to_hash(params[:group_permissions]),
+        :all => permissions_string_to_hash(params[:all_permissions])
     }
 
     data_source.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
@@ -312,9 +312,9 @@ class Ginger < Sinatra::Base
     page_id = params[:page_id]
 
     permissions = {
-        :user => params[:user_permissions],
-        :group => params[:group_permissions],
-        :all => params[:all_permissions]
+        :user => permissions_string_to_hash(params[:user_permissions]),
+        :group => permissions_string_to_hash(params[:group_permissions]),
+        :all => permissions_string_to_hash(params[:all_permissions])
     }
 
     page.save(page_id, content, permissions, session[:username])

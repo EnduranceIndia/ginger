@@ -44,13 +44,25 @@ class DataSourceSQLiteStore < SQLiteStore
     if existing_data_source != nil
     then
       db[:data_source_attributes].where(data_source_name: data_source_name).delete
+      db[:data_source_permissions].where(data_source_name: data_source_name).delete
     else
       db[:data_sources].insert(data_source_name: data_source_name, creator: creator)
     end
 
     attributes.each do |name, value|
       unless name.nil?
-        db[:data_source_attributes].insert(data_source_name: data_source_name, attribute_name: name.to_s, attribute_value: value.to_s)
+        db[:data_source_attributes].insert(data_source_name: data_source_name,
+                                           attribute_name: name.to_s,
+                                           attribute_value: value.to_s)
+      end
+    end
+
+    permissions.each do |entity, table|
+      table.each do |entity_name, permission|
+        db[:data_source_permissions].insert(data_source_name: data_source_name,
+                                            entity: entity.to_s,
+                                            entity_name: entity_name.to_s,
+                                            permission: permission.to_s)
       end
     end
 
