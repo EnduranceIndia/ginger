@@ -9,10 +9,27 @@ class PageSQLiteStore < SQLiteStore
     self.close
     if page
     then
-      to_hash(page)
+      to_displayable_hash(page, get_permissions_hash(page[:page_id]))
     else
       nil
     end
+  end
+
+  def get_permissions_hash(page_id)
+    page_permissions = db[:page_permissions].where(page_id: page_id)
+
+    permissions_hash = {}
+    permissions_hash[:user] = {}
+    permissions_hash[:group] = {}
+    permissions_hash[:all] = {}
+
+    page_permissions.each do |permission|
+      permissions_hash[param_to_sym(permission[:entity])][param_to_sym(permission[:entity_name])] = permission[:permission]
+    end
+
+    self.close
+
+    permissions_hash
   end
 
   def save(page_id, content, permissions, creator)
@@ -41,11 +58,25 @@ class PageSQLiteStore < SQLiteStore
     destroy_cache(page_id)
   end
 
-  def to_hash(page)
+  def to_hash(page, permissions_hash)
     {
       :title => page[:title],
       :page_id => page[:page_id],
-      :content => page[:content]
+      :content => page[:content],
+      :user_permissions => permissions_hash[:user],
+      :group_permissions => permissions_hash[:group],
+      :all_permissions => permissions_hash[:all]
+    }
+  end
+
+  def to_displayable_hash(page, permissions_hash)
+    {
+        :title => page[:title],
+        :page_id => page[:page_id],
+        :content => page[:content],
+        :user_permissions => permissions_hash_to_string(permissions_hash[:user]),
+        :group_permissions => permissions_hash_to_string(permissions_hash[:group]),
+        :all_permissions => permissions_hash_to_string(permissions_hash[:all])
     }
   end
 

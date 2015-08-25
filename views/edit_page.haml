@@ -63,11 +63,11 @@
         %p
           %h3 Permissions
           %b User:
-          %textarea.form-control{:name => 'user_permissions', :style => 'width: 100%; height: 40px;'}
+          %textarea.form-control{:name => 'user_permissions', :style => 'width: 100%; height: 40px;'}= @page[:user_permissions]
           %b Group:
-          %textarea.form-control{:name => 'group_permissions', :style => 'width: 100%; height: 40px'}
+          %textarea.form-control{:name => 'group_permissions', :style => 'width: 100%; height: 40px'}= @page[:group_permissions]
           %b All:
-          %textarea.form-control{:name => 'all_permissions', :style => 'width: 100%; height: 40px'}
+          %textarea.form-control{:name => 'all_permissions', :style => 'width: 100%; height: 40px'}= @page[:all_permissions]
         %input{:type => 'submit', :value => 'Submit', :class=>'btn btn-success'}
         %button{:type=>'button', :class=>'btn btn-danger', 'data-toggle'.to_sym=>'modal', 'data-target'.to_sym=>'#confirm-delete'}Delete
     %script{:src=>'/js/jquery-2.0.3.min.js'}
