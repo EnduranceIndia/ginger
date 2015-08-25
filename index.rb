@@ -130,7 +130,7 @@ class Ginger < Sinatra::Base
 
   get '/explore', :auth => [:user] do
     @data_source_list = data_sources.list.keys
-    haml :data_source_list
+    haml :list_data_sources
   end
 
   get '/explore/:data_source', :auth => [:user] do
@@ -210,9 +210,9 @@ class Ginger < Sinatra::Base
     redirect to("/data_source/#{params[:data_source_name]}")
   end
 
-  get '/pages' do
+  get '/pages', :auth => [:user] do
     @list_of_pages = page.list
-    haml :page_list
+    haml :list_pages
   end
 
   get '/page/:page_id/edit', :auth => [:user] do
@@ -311,7 +311,7 @@ class Ginger < Sinatra::Base
 
   get '/groups', :auth => [:user] do
     @group_list = group.list
-    haml :group_list
+    haml :list_groups
   end
 
   get '/groups/:group_name/', :auth => [:user] do
