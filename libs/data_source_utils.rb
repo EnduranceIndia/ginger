@@ -114,11 +114,13 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def list_shared_with_user_groups(username)
-  
+    data_sources = db[:data_sources].where(:data_source_name => db[:data_source_permissions].where(entity: 'group').where(:entity_name => db[:group_users].where(username: username).select(:group_name)).select(:data_source_name))
+    self.close
+    to_list_hash(data_sources)
   end
 
   def list_shared_with_group(group_name)
-
+    group_name = param_to_sym(group_name).to_s
   end
 
   def to_list_hash(data_sources)

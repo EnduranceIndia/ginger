@@ -74,6 +74,12 @@
       %h3
         Data Sources shared with my Groups
       %hr
+        %ul
+          - @my_group_data_sources.each do |data_source|
+            %li
+              %a{:href => "/explore/#{data_source}"}=data_source
+              |
+              %a{:href => "/data_source/#{data_source}"}View Config
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}
