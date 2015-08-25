@@ -358,6 +358,18 @@ class Ginger < Sinatra::Base
     redirect to("/groups/#{params[:group_name]}")
   end
 
+  get '/my/groups', :auth => [:user] do
+
+  end
+
+  get '/my/data_sources', :auth =>  [:user] do
+
+  end
+
+  get '/my/pages', :auth => [:user] do
+
+  end
+
   get '/help', :auth => [:user] do
     help_text = <<-END
 h2. Variables
