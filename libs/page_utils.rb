@@ -37,7 +37,7 @@ class PageSQLiteStore < SQLiteStore
 
     if existing_page != nil
       db[:pages].where(page_id: page_id).update(title: content[:title], content: content[:content])
-      db[:page_permissions].where(page_id).delete
+      db[:page_permissions].where(page_id: page_id).delete
     else
       db[:pages].where(page_id: page_id).insert(page_id: page_id,
                                                 title: content[:title],
@@ -93,7 +93,10 @@ class PageSQLiteStore < SQLiteStore
   end
 
   def list_shared_with(username)
-
+    username = param_to_sym(username).to_s
+    pages = db[:pages].where(:page_id => db[:page_permissions].where(entity: 'user').where(entity_name: username).select(:page_id))
+    self.close
+    to_list(pages)
   end
 
   def list_shared_with_user_groups(username)
@@ -107,6 +110,7 @@ class PageSQLiteStore < SQLiteStore
   def delete(page_id)
     destroy_cache(page_id)
     db[:pages].where(page_id: page_id).delete
+    db[:page_permissions].where(page_id: page_id).delete
     self.close
   end
 end

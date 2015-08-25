@@ -132,6 +132,7 @@ class DataSourceSQLiteStore < SQLiteStore
   def delete(data_source_name)
     db[:data_sources].where(data_source_name: data_source_name).delete
     db[:data_source_attributes].where(data_source_name: data_source_name).delete
+    db[:data_source_permissions].where(data_source_name: data_source_name).delete
     self.close
   end
 end

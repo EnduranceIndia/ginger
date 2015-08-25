@@ -63,6 +63,10 @@
       %h3
         Pages shared with me
       %hr
+      %ul
+        - @my_shared_pages.each do |page|
+          %li
+            %a{:href => "/page/#{page[:page_id]}"}=page[:title]
       %h3
         Pages shared with my Groups
       %hr
