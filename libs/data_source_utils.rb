@@ -38,7 +38,7 @@ class DataSourceSQLiteStore < SQLiteStore
     result
   end
 
-  def save(data_source_name, attributes, creator)
+  def save(data_source_name, attributes, permissions, creator)
     existing_data_source = load(data_source_name)
 
     if existing_data_source != nil

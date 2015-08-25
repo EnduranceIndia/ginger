@@ -15,7 +15,7 @@ class PageSQLiteStore < SQLiteStore
     end
   end
 
-  def save(page_id, content, creator)
+  def save(page_id, content, permissions, creator)
     existing_page = load(page_id)
 
     if existing_page != nil
