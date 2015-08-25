@@ -84,6 +84,20 @@ class SQLiteStore
         primary_key :data_source_name, :attribute_name
       end
 
+      db.create_table(:data_source_permissions) do
+        String :data_source_name
+        String :entity
+        String :entity_name
+        String :permission
+      end
+
+      db.create_table(:page_permissions) do
+        String :page_id
+        String :entity
+        String :entity_name
+        String :permission
+      end
+
       FlatFileStore.new.list.each { |id|
         data = FlatFileStore.new.load(id)
         title = data[:title]
