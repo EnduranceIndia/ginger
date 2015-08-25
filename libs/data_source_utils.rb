@@ -95,7 +95,7 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def list
-    data_sources = db[:data_sources].collect
+    data_sources = db[:data_sources].where(:data_source_name => db[:data_source_permissions].where(entity: 'all').where(entity_name: 'all').select(:data_source_name))
     self.close
     to_list_hash(data_sources)
   end
