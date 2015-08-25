@@ -94,8 +94,7 @@ class Ginger < Sinatra::Base
   end
 
   get '/', :auth => [:user] do
-    @list_of_pages = page.list
-    haml :page_list
+    redirect to('/my/pages')
   end
 
   get '/login' do
@@ -209,6 +208,11 @@ class Ginger < Sinatra::Base
     attributes_string = params[:attributes]
     data_source.save(data_source_name, attr_string_to_hash(attributes_string), session[:username])
     redirect to("/data_source/#{params[:data_source_name]}")
+  end
+
+  get '/pages' do
+    @list_of_pages = page.list
+    haml :page_list
   end
 
   get '/page/:page_id/edit', :auth => [:user] do
