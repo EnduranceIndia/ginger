@@ -12,7 +12,7 @@ class DataSourceSQLiteStore < SQLiteStore
     self.close
     if data_source
     then
-      to_displayable_hash(data_source_name, get_attributes_hash(data_source_name))
+      to_displayable_hash(data_source_name, get_attributes_hash(data_source_name), get_permissions_hash(data_source_name))
     else
       nil
     end
@@ -26,17 +26,40 @@ class DataSourceSQLiteStore < SQLiteStore
     attributes_hash
   end
 
-  def to_hash(data_source_name, attributes_hash)
+  def get_permissions_hash(data_source_name)
+    data_source_permissions = db[:data_source_permissions].where(data_source_name: data_source_name)
+
+    permissions_hash =  {}
+    permissions_hash[:user] = {}
+    permissions_hash[:group] = {}
+    permissions_hash[:all] = {}
+
+    data_source_permissions.each do |permission|
+      permissions_hash[param_to_sym(permission[:entity])][param_to_sym(permission[:entity_name])] = permission[:permission]
+    end
+
+    self.close
+
+    permissions_hash
+  end
+
+  def to_hash(data_source_name, attributes_hash, permissions_hash)
     {
       :data_source_name => data_source_name,
-      :attributes => attributes_hash
+      :attributes => attributes_hash,
+      :user_permissions => permissions_hash[:user],
+      :group_permissions => permissions_hash[:group],
+      :all_permissions => permissions_hash[:all]
     }
   end
 
-  def to_displayable_hash(data_source_name, attributes_hash)
+  def to_displayable_hash(data_source_name, attributes_hash, permissions_hash)
     {
       :data_source_name => data_source_name,
-      :attributes => attr_hash_to_string(attributes_hash)
+      :attributes => attr_hash_to_string(attributes_hash),
+      :user_permissions => permissions_hash_to_string(permissions_hash[:user]),
+      :group_permissions => permissions_hash_to_string(permissions_hash[:group]),
+      :all_permissions => permissions_hash_to_string(permissions_hash[:all])
     }
   end
 
