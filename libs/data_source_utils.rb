@@ -27,15 +27,17 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def to_hash(data_source_name, attributes_hash)
-    result = {}
-    result[param_to_sym(data_source_name)] = attributes_hash
-    result
+    {
+      :data_source_name => data_source_name,
+      :attributes => attributes_hash
+    }
   end
 
   def to_displayable_hash(data_source_name, attributes_hash)
-    result = {}
-    result[param_to_sym(data_source_name)] = attr_hash_to_string(attributes_hash)
-    result
+    {
+      :data_source_name => data_source_name,
+      :attributes => attr_hash_to_string(attributes_hash)
+    }
   end
 
   def save(data_source_name, attributes, permissions, creator)

@@ -1,7 +1,7 @@
 !!!
 %html
   %head
-    %title= @data_source[:name]
+    %title= @data_source_name
     %meta{:name =>  'viewport', :content => 'width=device-width, initial-scale=1.0'}
     %link{:href => '/bootstrap/css/bootstrap.min.css', :rel => 'stylesheet', :media => 'screen'}
     %link{:href=>'/bootstrap/css/bootstrap-theme.min.css', :rel=>'stylesheet', :media=>'screen'}
@@ -64,7 +64,7 @@
           .well.well-lg
             %h1= @data_source_name
             %h4 Attributes:
-            %h5= @data_source[param_to_sym(@data_source_name)]
+            %h5= @data_source[:attributes]
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}

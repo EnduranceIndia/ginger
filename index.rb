@@ -178,8 +178,7 @@ class Ginger < Sinatra::Base
 
     @page_title = 'Edit Data Source'
 
-    @data_source =
-        data_source.load(@data_source_name)
+    @data_source = data_source.load(@data_source_name)
 
     haml :edit_data_source
   end

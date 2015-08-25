@@ -59,7 +59,7 @@
           %input.form-control{:name => 'name', :type => 'text', :value => "#{@data_source_name}", :style => 'width: 100%;', :readonly => 'readonly'}
         %p
           %h3 Attributes
-          %textarea.form-control{:name => 'attributes', :style => 'width: 100%; height: 100px;'}= @data_source[param_to_sym(@data_source_name)]
+          %textarea.form-control{:name => 'attributes', :style => 'width: 100%; height: 100px;'}= @data_source[:attributes]
         %p
           %h3 Permissions
           %b User:
