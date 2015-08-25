@@ -61,6 +61,10 @@
             %a{:href => "/groups/#{group}"}=group
       %h2
         Groups I am in
+      %ul
+        - @my_groups.each do |group|
+          %li
+            %a{:href => "/groups/#{group}"}=group
 
     %script{:src=>'/js/jquery-2.0.3.min.js'}
     %script{:src=>'/bootstrap/js/bootstrap.min.js'}

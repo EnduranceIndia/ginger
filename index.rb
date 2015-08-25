@@ -354,6 +354,7 @@ class Ginger < Sinatra::Base
 
   get '/my/groups', :auth => [:user] do
     @my_created_groups = group.list_created_by(session[:username])
+    @my_groups = group.list_user_groups(session[:username])
     haml :my_groups
   end
 

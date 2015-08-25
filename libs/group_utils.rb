@@ -79,9 +79,22 @@ class GroupSQLiteStore < SQLiteStore
     groups_list
   end
 
+  def list_user_groups(username)
+    groups_list = []
+
+    groups = db[:group_users].where(username: username)
+
+    groups.each do |group|
+      groups_list.push(group[:group_name])
+    end
+
+    self.close
+    groups_list
+  end
+
   def delete(group_name)
     db[:groups].where(group_name: group_name).delete
-    db[:group_user].where(group_name: group_name).delete
+    db[:group_users].where(group_name: group_name).delete
     self.close
   end
 end
