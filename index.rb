@@ -372,6 +372,7 @@ class Ginger < Sinatra::Base
 
   get '/my/data_sources', :auth =>  [:user] do
     @my_created_data_sources = data_sources.list_created_by(session[:username]).keys
+    @my_shared_data_sources = data_source.list_shared_with(session[:username]).keys
     haml :my_data_sources
   end
 

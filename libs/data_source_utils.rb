@@ -95,25 +95,39 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def list
-    data_sources = {}
-    db[:data_sources].collect do |data_source|
-      data_source_name = data_source[:data_source_name]
-      data_source_attributes = get_attributes_hash(data_source_name)
-      data_sources[param_to_sym(data_source_name)] = data_source_attributes
-    end
+    data_sources = db[:data_sources].collect
     self.close
-    data_sources
+    to_list_hash(data_sources)
   end
 
   def list_created_by(username)
-    data_sources_hash = {}
     data_sources = db[:data_sources].where(creator: username)
+    self.close
+    to_list_hash(data_sources)
+  end
+
+  def list_shared_with(username)
+    username = param_to_sym(username).to_s
+    data_sources = db[:data_sources].where(:data_source_name => db[:data_source_permissions].where(entity: 'user').where(entity_name: username).select(:data_source_name))
+    self.close
+    to_list_hash(data_sources)
+  end
+
+  def list_shared_with_user_groups(username)
+  
+  end
+
+  def list_shared_with_group(group_name)
+
+  end
+
+  def to_list_hash(data_sources)
+    data_sources_hash = {}
     data_sources.each do |data_source|
       data_source_name = data_source[:data_source_name]
       data_source_attributes = get_attributes_hash(data_source_name)
       data_sources_hash[param_to_sym(data_source_name)] = data_source_attributes
     end
-    self.close
     data_sources_hash
   end
 

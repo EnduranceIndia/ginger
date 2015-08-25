@@ -65,6 +65,12 @@
       %h3
         Data Source shared with me
       %hr
+      %ul
+        - @my_shared_data_sources.each do |data_source|
+          %li
+            %a{:href => "/explore/#{data_source}"}=data_source
+            |
+            %a{:href => "/data_source/#{data_source}"}View Config
       %h3
         Data Sources shared with my Groups
       %hr

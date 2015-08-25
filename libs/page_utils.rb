@@ -93,6 +93,18 @@ class PageSQLiteStore < SQLiteStore
     pages_list
   end
 
+  def list_shared_with(username)
+
+  end
+
+  def list_shared_with_user_groups(username)
+
+  end
+
+  def list_shared_with_group(group_name)
+
+  end
+
   def delete(page_id)
     destroy_cache(page_id)
     db[:pages].where(page_id: page_id).delete
