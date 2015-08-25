@@ -20,8 +20,21 @@ class PageSQLiteStore < SQLiteStore
 
     if existing_page != nil
       db[:pages].where(page_id: page_id).update(title: content[:title], content: content[:content])
+      db[:page_permissions].where(page_id).delete
     else
-      db[:pages].where(page_id: page_id).insert(page_id: page_id, title: content[:title], content: content[:content], creator: creator)
+      db[:pages].where(page_id: page_id).insert(page_id: page_id,
+                                                title: content[:title],
+                                                content: content[:content],
+                                                creator: creator)
+    end
+
+    permissions.each do |entity, table|
+      table.each do |entity_name, permission|
+        db[:page_permissions].insert(page_id: page_id,
+                                     entity: entity.to_s,
+                                     entity_name: entity_name.to_s,
+                                     permission: permission.to_s)
+      end
     end
 
     self.close
