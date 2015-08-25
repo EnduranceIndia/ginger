@@ -15,13 +15,13 @@ class PageSQLiteStore < SQLiteStore
     end
   end
 
-  def save(page_id, content)
+  def save(page_id, content, creator)
     existing_page = load(page_id)
 
     if existing_page != nil
       db[:pages].where(page_id: page_id).update(title: content[:title], content: content[:content])
     else
-      db[:pages].where(page_id: page_id).insert(page_id: page_id, title: content[:title], content: content[:content])
+      db[:pages].where(page_id: page_id).insert(page_id: page_id, title: content[:title], content: content[:content], creator: creator)
     end
 
     self.close

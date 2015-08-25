@@ -212,7 +212,7 @@ class Ginger < Sinatra::Base
   post '/data_source/:data_source_name', :auth => [:user] do
     data_source_name = params[:name]
     attributes_string = params[:attributes]
-    data_source.save(data_source_name, attr_string_to_hash(attributes_string))
+    data_source.save(data_source_name, attr_string_to_hash(attributes_string), session[:username])
     redirect to("/data_source/#{params[:data_source_name]}")
   end
 
@@ -305,7 +305,7 @@ class Ginger < Sinatra::Base
 
     page_id = params[:page_id]
 
-    page.save(page_id, content)
+    page.save(page_id, content, session[:username])
 
     redirect to("/page/#{page_id}")
   end
@@ -354,7 +354,7 @@ class Ginger < Sinatra::Base
   post '/groups/:group_name', :auth => [:user] do
     group_name = params[:group_name]
     members_string = params[:members]
-    group.save(group_name, members_string_to_list(members_string))
+    group.save(group_name, members_string_to_list(members_string), session[:username])
     redirect to("/groups/#{params[:group_name]}")
   end
 

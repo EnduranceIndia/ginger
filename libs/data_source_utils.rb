@@ -38,12 +38,12 @@ class DataSourceSQLiteStore < SQLiteStore
     result
   end
 
-  def save(data_source_name, attributes)
+  def save(data_source_name, attributes, creator)
     existing_data_source = load(data_source_name)
 
     if existing_data_source != nil
     then
-      db[:data_source_attributes].where(data_source_name: data_source_name).delete
+      db[:data_source_attributes].where(data_source_name: data_source_name, creator: creator).delete
     else
       db[:data_sources].insert(data_source_name: data_source_name)
     end

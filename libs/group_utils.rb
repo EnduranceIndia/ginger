@@ -37,12 +37,12 @@ class GroupSQLiteStore < SQLiteStore
     }
   end
 
-  def save(group_name, members)
+  def save(group_name, members, creator)
     existing_group = load(group_name)
 
     if existing_group == nil
     then
-      db[:groups].insert(group_name: group_name)
+      db[:groups].insert(group_name: group_name, creator: creator)
     else
       db[:group_users].where(group_name: group_name).delete
     end
