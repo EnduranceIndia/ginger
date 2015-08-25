@@ -54,7 +54,7 @@
 
     .container
       %h3
-        Data Sources I created
+        Data Sources created by me
       %hr
       %ul
         - @my_created_data_sources.each do |data_source|
@@ -63,7 +63,7 @@
             |
             %a{:href => "/data_source/#{data_source}"}View Config
       %h3
-        Data Source shared with me
+        Data Sources shared with me
       %hr
       %ul
         - @my_shared_data_sources.each do |data_source|
