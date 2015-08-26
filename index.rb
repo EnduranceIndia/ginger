@@ -230,13 +230,23 @@ class Ginger < Sinatra::Base
     data_source_name = params[:name]
     attributes_string = params[:attributes]
 
+    data_source = data_sources.load(data_source_name)
+
+    if data_source
+      user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+
+      if user_permission != 'write'
+        redirect to('/forbidden')
+      end
+    end
+
     permissions = {
         :user => permissions_string_to_hash(params[:user_permissions]),
         :group => permissions_string_to_hash(params[:group_permissions]),
         :all => permissions_string_to_hash(params[:all_permissions])
     }
 
-    data_source.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
+    data_sources.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
     redirect to("/data_source/#{params[:data_source_name]}")
   end
 
