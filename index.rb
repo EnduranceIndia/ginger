@@ -409,6 +409,11 @@ class Ginger < Sinatra::Base
 
   get '/groups/:group_name/edit', :auth => [:user] do
     @group_name = params[:group_name]
+
+    unless group.is_member(@group_name, session[:username])
+      redirect to('/forbidden')
+    end
+
     @group = nil
 
     @page_title = 'Edit Group'
@@ -420,6 +425,12 @@ class Ginger < Sinatra::Base
 
   post '/groups/:group_name', :auth => [:user] do
     group_name = params[:group_name]
+
+
+    unless group.is_member(group_name, session[:username])
+      redirect to('/forbidden')
+    end
+
     members_string = params[:members]
     group.save(group_name, members_string_to_list(members_string), session[:username])
     redirect to("/groups/#{params[:group_name]}")
