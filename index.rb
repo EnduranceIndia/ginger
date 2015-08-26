@@ -190,7 +190,7 @@ class Ginger < Sinatra::Base
 
     @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
 
-    if @user_permission == 'forbidden'
+    if @user_permission != 'write'
       redirect to('/forbidden')
     end
 
