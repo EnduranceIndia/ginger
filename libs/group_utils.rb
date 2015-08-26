@@ -47,6 +47,9 @@ class GroupSQLiteStore < SQLiteStore
       db[:group_users].where(group_name: group_name).delete
     end
 
+    members.push(creator)
+    members = members.uniq
+
     members.each do |member_name|
       unless member_name.nil?
         db[:group_users].insert(group_name: group_name, username: member_name.to_s)

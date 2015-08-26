@@ -342,6 +342,7 @@ class Ginger < Sinatra::Base
       @page_title = 'New Group'
       @group = {}
       @group[:group_name] = @group_name
+      @group[:members_list] = session[:username]
       haml :edit_group
     end
   end
