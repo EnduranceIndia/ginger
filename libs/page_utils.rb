@@ -128,9 +128,12 @@ class PageSQLiteStore < SQLiteStore
       return 'write'
     end
 
+    username_str = username
     username = param_to_sym(username).to_s
-    user_groups = db[:group_users].where(username: username).select(:group_name)
+
+    user_groups = db[:group_users].where(username: username_str).select(:group_name)
     permissions_list = db[:page_permissions].where(page_id: page_id).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
+
     self.close
     get_highest_permission(permissions_list)
   end

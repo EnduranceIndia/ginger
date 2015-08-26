@@ -148,9 +148,12 @@ class DataSourceSQLiteStore < SQLiteStore
       return 'write'
     end
 
+    username_str = username
     username = param_to_sym(username).to_s
-    user_groups = db[:group_users].where(username: username).select(:group_name)
+
+    user_groups = db[:group_users].where(username: username_str).select(:group_name)
     permissions_list = db[:data_source_permissions].where(data_source_name: data_source_name).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
+
     self.close
     get_highest_permission(permissions_list)
   end
