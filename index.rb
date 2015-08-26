@@ -260,7 +260,7 @@ class Ginger < Sinatra::Base
 
     @user_permission = page.get_user_permissions(@page_id, session[:username])
 
-    if @user_permission == 'forbidden'
+    if @user_permission != 'write'
       redirect to('/forbidden')
     end
 
