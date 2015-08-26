@@ -100,6 +100,12 @@ class GroupSQLiteStore < SQLiteStore
     db[:group_users].where(group_name: group_name).delete
     self.close
   end
+
+  def is_member(group_name, username)
+    res = db[:group_users].where(group_name: group_name, username: username).first
+    self.close
+    res != nil
+  end
 end
 
 def members_string_to_list(members_string)
