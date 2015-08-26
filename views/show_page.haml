@@ -46,15 +46,16 @@
                   %a{:href => '/my/groups'}My Groups
                 %li
                   %a{:href => '/groups'}All Groups
-            %li{:class=>'dropdown'}
-              %a{:href => '#', :class=>'dropdown-toggle', 'data-toggle'.to_sym=>'dropdown'}
-                Page
-                %b{:class=>'caret'}
-              %ul{:class=>'dropdown-menu'}
-                %li
-                  %a{:href=>"#{add_cache_request(request.url)}"}Cache
-                %li
-                  %a{:href=>"#{get_edit_link(request.url)}"}Edit
+            - if @user_permission == 'write'
+              %li{:class=>'dropdown'}
+                %a{:href => '#', :class=>'dropdown-toggle', 'data-toggle'.to_sym=>'dropdown'}
+                  Page
+                  %b{:class=>'caret'}
+                %ul{:class=>'dropdown-menu'}
+                  %li
+                    %a{:href=>"#{add_cache_request(request.url)}"}Cache
+                  %li
+                    %a{:href=>"#{get_edit_link(request.url)}"}Edit
           %ul.nav.navbar-nav.navbar-right
             %li
               %a{:href=>'/help'}Help
