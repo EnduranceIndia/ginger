@@ -115,6 +115,11 @@ class PageSQLiteStore < SQLiteStore
     db[:page_permissions].where(page_id: page_id).delete
     self.close
   end
+
+  def get_user_permissions(page_id, username)
+    permissions_list = db[:page_permissions].where(page_id: page_id).where{({:entity => 'user'} & {:entity_name => username}) | ({:entity => 'group'} & {:entity_name => db[:group_users].where(username: username).select(:group_name)}) | ({:entity => 'all'} & {:entity_name => 'all'})}.select(:permission)
+    get_highest_permission(permissions_list)
+  end
 end
 
 def get_edit_link(url)

@@ -135,6 +135,11 @@ class DataSourceSQLiteStore < SQLiteStore
     db[:data_source_permissions].where(data_source_name: data_source_name).delete
     self.close
   end
+
+  def get_user_permissions(data_source_name, username)
+    permissions_list = db[:data_source_permissions].where(data_source_name: data_source_name).where{({:entity => 'user'} & {:entity_name => username}) | ({:entity => 'group'} & {:entity_name => db[:group_users].where(username: username).select(:group_name)}) | ({:entity => 'all'} & {:entity_name => 'all'})}.select(:permission)
+    get_highest_permission(permissions_list)
+  end
 end
 
 def attr_string_to_hash(attributes_string)
