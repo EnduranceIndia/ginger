@@ -95,6 +95,12 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def list
+    data_sources = db[:data_sources].collect
+    self.close
+    to_list_hash(data_sources)
+  end
+
+  def list_public
     data_sources = db[:data_sources].where(:data_source_name => db[:data_source_permissions].where(entity: 'all').where(entity_name: 'all').select(:data_source_name))
     self.close
     to_list_hash(data_sources)
@@ -137,9 +143,22 @@ class DataSourceSQLiteStore < SQLiteStore
   end
 
   def get_user_permissions(data_source_name, username)
-    permissions_list = db[:data_source_permissions].where(data_source_name: data_source_name).where{({:entity => 'user'} & {:entity_name => username}) | ({:entity => 'group'} & {:entity_name => db[:group_users].where(username: username).select(:group_name)}) | ({:entity => 'all'} & {:entity_name => 'all'})}.select(:permission)
+
+    if is_creator(data_source_name, username)
+      return 'write'
+    end
+
+    username = param_to_sym(username).to_s
+    user_groups = db[:group_users].where(username: username).select(:group_name)
+    permissions_list = db[:data_source_permissions].where(data_source_name: data_source_name).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
     self.close
     get_highest_permission(permissions_list)
+  end
+
+  def is_creator(data_source_name, username)
+    res = db[:data_sources].where(data_source_name: data_source_name, creator: username).first
+    self.close
+    res != nil
   end
 end
 

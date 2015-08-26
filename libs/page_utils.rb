@@ -81,6 +81,12 @@ class PageSQLiteStore < SQLiteStore
   end
 
   def list
+    pages = db[:pages].collect
+    self.close
+    to_list(pages)
+  end
+
+  def list_public
     pages = db[:pages].where(:page_id => db[:page_permissions].where(entity: 'all').where(entity_name: 'all').select(:page_id))
     self.close
     to_list(pages)
@@ -117,9 +123,22 @@ class PageSQLiteStore < SQLiteStore
   end
 
   def get_user_permissions(page_id, username)
-    permissions_list = db[:page_permissions].where(page_id: page_id).where{({:entity => 'user'} & {:entity_name => username}) | ({:entity => 'group'} & {:entity_name => db[:group_users].where(username: username).select(:group_name)}) | ({:entity => 'all'} & {:entity_name => 'all'})}.select(:permission)
+
+    if is_creator(page_id, username)
+      return 'write'
+    end
+
+    username = param_to_sym(username).to_s
+    user_groups = db[:group_users].where(username: username).select(:group_name)
+    permissions_list = db[:page_permissions].where(page_id: page_id).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
     self.close
     get_highest_permission(permissions_list)
+  end
+
+  def is_creator(page_id, username)
+    res = db[:pages].where(page_id: page_id, creator: username).first
+    self.close
+    res != nil
   end
 end
 

@@ -129,7 +129,7 @@ class Ginger < Sinatra::Base
   end
 
   get '/explore', :auth => [:user] do
-    @data_source_list = data_sources.list.keys
+    @data_source_list = data_sources.list_public.keys
     haml :list_data_sources
   end
 
@@ -137,6 +137,12 @@ class Ginger < Sinatra::Base
 
     data_source_name = params[:data_source]
     data_source = data_sources.list[param_to_sym(data_source_name)]
+
+    @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+
+    if @user_permission == 'forbidden'
+      redirect to('/forbidden')
+    end
 
     db = connect(data_source)
 
@@ -157,6 +163,12 @@ class Ginger < Sinatra::Base
     data_source_name = params[:data_source]
     data_source = data_sources.list[param_to_sym(data_source_name)]
 
+    @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+
+    if @user_permission == 'forbidden'
+      redirect to('/forbidden')
+    end
+
     db = connect(data_source)
 
     template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
@@ -176,6 +188,12 @@ class Ginger < Sinatra::Base
     @data_source_name = params[:data_source_name]
     @data_source = nil
 
+    @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+
+    if @user_permission == 'forbidden'
+      redirect to('/forbidden')
+    end
+
     @page_title = 'Edit Data Source'
 
     @data_source = data_source.load(@data_source_name)
@@ -193,6 +211,12 @@ class Ginger < Sinatra::Base
     @data_source = data_source.load(@data_source_name)
 
     if @data_source
+      @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+
+      if @user_permission == 'forbidden'
+        redirect to('/forbidden')
+      end
+
       haml :show_data_source
     else
       @page_title = 'New Data Source'
@@ -217,12 +241,19 @@ class Ginger < Sinatra::Base
   end
 
   get '/pages', :auth => [:user] do
-    @list_of_pages = page.list
+    @list_of_pages = page.list_public
     haml :list_pages
   end
 
   get '/page/:page_id/edit', :auth => [:user] do
     @page_id = params[:page_id]
+
+    @user_permission = page.get_user_permissions(@page_id, session[:username])
+
+    if @user_permission == 'forbidden'
+      redirect to('/forbidden')
+    end
+
     @page = nil
 
     @page_title = 'Edit page'
@@ -242,6 +273,13 @@ class Ginger < Sinatra::Base
     @page = page.load(@page_id)
 
     if @page
+
+      @user_permission = page.get_user_permissions(@page_id, session[:username])
+
+      if @user_permission == 'forbidden'
+        redirect to('/forbidden')
+      end
+      
       uri = URI.parse(request.url)
 
       query_params = remove_cache_request(uri.query, true) || ''
@@ -383,6 +421,10 @@ class Ginger < Sinatra::Base
     @my_shared_pages = page.list_shared_with(session[:username])
     @my_group_pages = page.list_shared_with_user_groups(session[:username])
     haml :my_pages
+  end
+
+  get '/forbidden', :auth => [:user] do
+    haml :forbidden
   end
 
   get '/help', :auth => [:user] do
