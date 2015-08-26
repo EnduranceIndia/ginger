@@ -341,6 +341,19 @@ class Ginger < Sinatra::Base
   end
 
   post '/page/:page_id', :auth => [:user] do
+
+    page_id = params[:page_id]
+
+    page_obj = page.load(page_id)
+
+    if page_obj
+      user_permission = page.get_user_permissions(page_id, session[:username])
+
+      if user_permission != 'write'
+        redirect to('/forbidden')
+      end
+    end
+
     if params[:delete_page] == 'true'
       page.delete(params[:page_id])
       redirect to('/')
@@ -355,8 +368,6 @@ class Ginger < Sinatra::Base
         :title => params[:title],
         :content => params[:content]
     }
-
-    page_id = params[:page_id]
 
     permissions = {
         :user => permissions_string_to_hash(params[:user_permissions]),
