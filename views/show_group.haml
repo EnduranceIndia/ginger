@@ -46,13 +46,14 @@
                   %a{:href => '/my/groups'}My Groups
                 %li
                   %a{:href => '/groups'}All Groups
-            %li{:class=>'dropdown'}
-              %a{:href => '#', :class=>'dropdown-toggle', 'data-toggle'.to_sym=>'dropdown'}
-                Group
-                %b{:class=>'caret'}
-              %ul{:class=>'dropdown-menu'}
-                %li
-                  %a{:href=>"#{get_group_edit_link(request.url)}"}Edit
+            - if @is_member
+              %li{:class=>'dropdown'}
+                %a{:href => '#', :class=>'dropdown-toggle', 'data-toggle'.to_sym=>'dropdown'}
+                  Group
+                  %b{:class=>'caret'}
+                %ul{:class=>'dropdown-menu'}
+                  %li
+                    %a{:href=>"#{get_group_edit_link(request.url)}"}Edit
           %ul.nav.navbar-nav.navbar-right
             %li
               %a{:href=>'/help'}Help

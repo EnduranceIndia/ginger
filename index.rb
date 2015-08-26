@@ -393,6 +393,7 @@ class Ginger < Sinatra::Base
     @group_name = params[:group_name]
 
     @group = group.load(@group_name)
+    @is_member = group.is_member(@group_name, session[:username])
 
     if @group
     then
