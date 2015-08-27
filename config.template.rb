@@ -5,6 +5,12 @@ def env_conf
         :type => 'ldap',
         :ldap_server => 'ldap.example.com',
         :ldap_port => 389
+      },
+      # XXX: Remove this in production
+      :localhost => {
+          :type => 'ldap',
+          :ldap_server => 'localhost',
+          :ldap_port => 389
       }
     },
 
