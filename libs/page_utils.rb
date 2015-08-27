@@ -1,12 +1,8 @@
-def page
-  PageSQLiteStore.new
-end
-
 class PageSQLiteStore < SQLiteStore
 
   def load(page_id)
     page = db[:pages].where(page_id: page_id).first
-    self.close
+    
     if page
     then
       to_displayable_hash(page, get_permissions_hash(page[:page_id]))
@@ -26,8 +22,6 @@ class PageSQLiteStore < SQLiteStore
     page_permissions.each do |permission|
       permissions_hash[param_to_sym(permission[:entity])][param_to_sym(permission[:entity_name])] = permission[:permission]
     end
-
-    self.close
 
     permissions_hash
   end
@@ -73,7 +67,6 @@ class PageSQLiteStore < SQLiteStore
       end
     end
 
-    self.close
     destroy_cache(page_id)
   end
 
@@ -101,32 +94,27 @@ class PageSQLiteStore < SQLiteStore
 
   def list
     pages = db[:pages].collect
-    self.close
     to_list(pages)
   end
 
   def list_public
     pages = db[:pages].where(:page_id => db[:page_permissions].where(entity: 'all').where(entity_name: 'all').select(:page_id))
-    self.close
     to_list(pages)
   end
 
   def list_created_by(username)
     pages = db[:pages].where(creator: username)
-    self.close
     to_list(pages)
   end
 
   def list_shared_with(username)
     username = param_to_sym(username).to_s
     pages = db[:pages].where(:page_id => db[:page_permissions].where(entity: 'user').where(entity_name: username).select(:page_id))
-    self.close
     to_list(pages)
   end
 
   def list_shared_with_user_groups(username)
     pages = db[:pages].where(:page_id => db[:page_permissions].where(entity: 'group').where(:entity_name => db[:group_users].where(username: username).select(:group_name)).select(:page_id))
-    self.close
     to_list(pages)
   end
 
@@ -138,7 +126,6 @@ class PageSQLiteStore < SQLiteStore
     destroy_cache(page_id)
     db[:pages].where(page_id: page_id).delete
     db[:page_permissions].where(page_id: page_id).delete
-    self.close
   end
 
   def get_user_permissions(page_id, username)
@@ -153,13 +140,11 @@ class PageSQLiteStore < SQLiteStore
     user_groups = db[:group_users].where(username: username_str).select(:group_name)
     permissions_list = db[:page_permissions].where(page_id: page_id).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
 
-    self.close
     self.get_highest_permission(permissions_list)
   end
 
   def is_creator(page_id, username)
     res = db[:pages].where(page_id: page_id, creator: username).first
-    self.close
     res != nil
   end
 end

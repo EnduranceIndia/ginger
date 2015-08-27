@@ -35,7 +35,10 @@ class CSVGenerator < ContentGenerator
       data_source_name = parameters[:data][:data_source].to_s
     end
 
-    data_source = data_sources.list[param_to_sym(data_source_name)]
+    data_source = nil
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      data_source = data_sources.list[param_to_sym(data_source_name)]
+    end
 
     error = nil
 

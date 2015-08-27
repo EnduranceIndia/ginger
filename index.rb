@@ -34,6 +34,8 @@ require "#{BASE}/libs/ldap_auth"
 require "#{BASE}/libs/user_utils"
 require "#{BASE}/libs/data_source_utils"
 require "#{BASE}/libs/group_utils"
+require "#{BASE}/libs/resources.rb"
+
 
 class Ginger < Sinatra::Base
 
@@ -111,7 +113,11 @@ class Ginger < Sinatra::Base
     ldap_auth_result = ldap_authenticate(username, password)
 
     if ldap_auth_result[:status] == 'authenticated'
-      user.add_user(username)
+
+      GingerResource.access(GingerResourceType::USER) do |user|
+        user.add_user(username)
+      end
+
       session[:logged_in] = true
       session[:username] = username
       redirect to('/')
@@ -129,16 +135,24 @@ class Ginger < Sinatra::Base
   end
 
   get '/explore', :auth => [:user] do
-    @data_source_list = data_sources.list_public.keys
+    @data_source_list = nil
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      @data_source_list = data_sources.list_public.keys
+    end
+
     haml :list_data_sources
   end
 
   get '/explore/:data_source', :auth => [:user] do
-
     data_source_name = params[:data_source]
-    data_source = data_sources.list[param_to_sym(data_source_name)]
 
-    @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+    @user_permission = nil
+    data_source = nil
+
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      data_source = data_sources.list[param_to_sym(data_source_name)]
+      @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+    end
 
     if @user_permission == 'forbidden'
       redirect to('/forbidden')
@@ -161,9 +175,14 @@ class Ginger < Sinatra::Base
 
   get '/explore/:data_source/:table', :auth => [:user] do
     data_source_name = params[:data_source]
-    data_source = data_sources.list[param_to_sym(data_source_name)]
 
-    @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+    data_source = nil
+    @user_permission = nil
+
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      data_source = data_sources.list[param_to_sym(data_source_name)]
+      @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+    end
 
     if @user_permission == 'forbidden'
       redirect to('/forbidden')
@@ -188,7 +207,11 @@ class Ginger < Sinatra::Base
     @data_source_name = params[:data_source_name]
     @data_source = nil
 
-    @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+    @user_permission = nil
+
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+    end
 
     if @user_permission != 'admin'
       redirect to('/forbidden')
@@ -196,7 +219,10 @@ class Ginger < Sinatra::Base
 
     @page_title = 'Edit Data Source'
 
-    @data_source = data_source.load(@data_source_name)
+    @data_source = nil
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      @data_source = data_sources.load(@data_source_name)
+    end
 
     haml :edit_data_source
   end
@@ -208,9 +234,13 @@ class Ginger < Sinatra::Base
   get '/data_source/:data_source_name', :auth => [:user] do
     @data_source_name = params[:data_source_name]
 
-    @data_source = data_source.load(@data_source_name)
+    @data_source = nil
+    @user_permission = nil
 
-    @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      @data_source = data_sources.load(@data_source_name)
+      @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+    end
 
     if @user_permission != 'admin'
       redirect to('/forbidden')
@@ -230,7 +260,11 @@ class Ginger < Sinatra::Base
     data_source_name = params[:name]
     attributes_string = params[:attributes]
 
-    user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+    user_permission = nil
+
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+    end
 
     if user_permission != 'admin'
       redirect to('/forbidden')
@@ -242,19 +276,29 @@ class Ginger < Sinatra::Base
       :all => permissions_string_to_hash(params[:all_permissions])
     }
 
-    data_sources.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      data_sources.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
+    end
+
     redirect to("/data_source/#{params[:data_source_name]}")
   end
 
   get '/pages', :auth => [:user] do
-    @list_of_pages = page.list_public
+    @list_of_pages = nil
+    GingerResource.access(GingerResourceType::PAGE) do |page|
+      @list_of_pages = page.list_public
+    end
+
     haml :list_pages
   end
 
   get '/page/:page_id/edit', :auth => [:user] do
     @page_id = params[:page_id]
 
-    @user_permission = page.get_user_permissions(@page_id, session[:username])
+    @user_permission = nil
+    GingerResource.access(GingerResourceType::PAGE) do |page|
+      @user_permission = page.get_user_permissions(@page_id, session[:username])
+    end
 
     if @user_permission != 'write'
       redirect to('/forbidden')
@@ -264,7 +308,9 @@ class Ginger < Sinatra::Base
 
     @page_title = 'Edit page'
 
-    @page = page.load(@page_id)
+    GingerResource.access(GingerResourceType::PAGE) do |page|
+      @page = page.load(@page_id)
+    end
 
     haml :edit_page
   end
@@ -276,11 +322,18 @@ class Ginger < Sinatra::Base
   get '/page/:page_id', :auth => [:user] do
     @page_id = params[:page_id]
 
-    @page = page.load(@page_id)
+    @page = nil
+    GingerResource.access(GingerResourceType::PAGE) do |page|
+      @page = page.load(@page_id)
+    end
 
     if @page
 
-      @user_permission = page.get_user_permissions(@page_id, session[:username])
+      @user_permission = nil
+
+      GingerResource.access(GingerResourceType::PAGE) do |page|
+        @user_permission = page.get_user_permissions(@page_id, session[:username])
+      end
 
       if @user_permission == 'forbidden'
         redirect to('/forbidden')
@@ -337,13 +390,18 @@ class Ginger < Sinatra::Base
   end
 
   post '/page/:page_id', :auth => [:user] do
-
     page_id = params[:page_id]
 
-    page_obj = page.load(page_id)
+    page_obj = nil
+    GingerResource.access(GingerResourceType::PAGE) do |page|
+      page_obj = page.load(page_id)
+    end
 
     if page_obj
-      user_permission = page.get_user_permissions(page_id, session[:username])
+      user_permission = nil
+      GingerResource.access(GingerResourceType::PAGE) do |page|
+        user_permission = page.get_user_permissions(page_id, session[:username])
+      end
 
       if user_permission != 'write'
         redirect to('/forbidden')
@@ -371,13 +429,19 @@ class Ginger < Sinatra::Base
         :all => permissions_string_to_hash(params[:all_permissions])
     }
 
-    page.save(page_id, content, permissions, session[:username])
+    GingerResource.access(GingerResourceType::PAGE) do |page|
+      page.save(page_id, content, permissions, session[:username])
+    end
 
     redirect to("/page/#{page_id}")
   end
 
   get '/groups', :auth => [:user] do
-    @group_list = group.list
+    @group_list = nil
+    GingerResource.access(GingerResourceType::GROUP) do |group|
+      @group_list = group.list
+    end
+
     haml :list_groups
   end
 
@@ -388,8 +452,13 @@ class Ginger < Sinatra::Base
   get '/groups/:group_name', :auth => [:user] do
     @group_name = params[:group_name]
 
-    @group = group.load(@group_name)
-    @is_member = group.is_member(@group_name, session[:username])
+    @group = nil
+    @is_member = nil
+
+    GingerResource.access(GingerResourceType::GROUP) do |group|
+      @group = group.load(@group_name)
+      @is_member = group.is_member(@group_name, session[:username])
+    end
 
     if @group
     then
@@ -406,15 +475,19 @@ class Ginger < Sinatra::Base
   get '/groups/:group_name/edit', :auth => [:user] do
     @group_name = params[:group_name]
 
-    unless group.is_member(@group_name, session[:username])
-      redirect to('/forbidden')
+    GingerResource.access(GingerResourceType::GROUP) do |group|
+      unless group.is_member(@group_name, session[:username])
+        redirect to('/forbidden')
+      end
     end
 
     @group = nil
 
     @page_title = 'Edit Group'
 
-    @group = group.load(@group_name)
+    GingerResource.access(GingerResourceType::GROUP) do |group|
+      @group = group.load(@group_name)
+    end
 
     haml :edit_group
   end
@@ -422,36 +495,61 @@ class Ginger < Sinatra::Base
   post '/groups/:group_name', :auth => [:user] do
     group_name = params[:group_name]
 
-    group_obj = group.load(group_name)
-
-    if group_obj
-      unless group.is_member(group_name, session[:username])
-        redirect to('/forbidden')
+    GingerResource.access(GingerResourceType::GROUP) do |group|
+      group_obj = group.load(group_name)
+      if group_obj
+        unless group.is_member(group_name, session[:username])
+          redirect to('/forbidden')
+        end
       end
     end
 
     members_string = params[:members]
-    group.save(group_name, members_string_to_list(members_string), session[:username])
+
+    GingerResource.access(GingerResourceType::GROUP) do |group|
+      group.save(group_name, members_string_to_list(members_string), session[:username])
+    end
+
     redirect to("/groups/#{params[:group_name]}")
   end
 
   get '/my/groups', :auth => [:user] do
-    @my_created_groups = group.list_created_by(session[:username])
-    @my_groups = group.list_user_groups(session[:username])
+    @my_created_groups = nil
+    @my_groups = nil
+
+    GingerResource.access(GingerResourceType::GROUP) do |group|
+      @my_created_groups = group.list_created_by(session[:username])
+      @my_groups = group.list_user_groups(session[:username])
+    end
+
     haml :my_groups
   end
 
   get '/my/data_sources', :auth =>  [:user] do
-    @my_created_data_sources = data_sources.list_created_by(session[:username]).keys
-    @my_shared_data_sources = data_sources.list_shared_with(session[:username]).keys
-    @my_group_data_sources = data_sources.list_shared_with_user_groups(session[:username]).keys
+    @my_created_data_sources = nil
+    @my_shared_data_sources = nil
+    @my_group_data_sources = nil
+
+    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+      @my_created_data_sources = data_sources.list_created_by(session[:username]).keys
+      @my_shared_data_sources = data_sources.list_shared_with(session[:username]).keys
+      @my_group_data_sources = data_sources.list_shared_with_user_groups(session[:username]).keys
+    end
+
     haml :my_data_sources
   end
 
   get '/my/pages', :auth => [:user] do
-    @my_created_pages = page.list_created_by(session[:username])
-    @my_shared_pages = page.list_shared_with(session[:username])
-    @my_group_pages = page.list_shared_with_user_groups(session[:username])
+    @my_created_pages = nil
+    @my_shared_pages = nil
+    @my_group_pages = nil
+
+    GingerResource.access(GingerResourceType::PAGE) do |page|
+      @my_created_pages = page.list_created_by(session[:username])
+      @my_shared_pages = page.list_shared_with(session[:username])
+      @my_group_pages = page.list_shared_with_user_groups(session[:username])
+    end
+
     haml :my_pages
   end
 

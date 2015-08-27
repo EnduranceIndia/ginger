@@ -53,7 +53,12 @@ class ExecutionContext
     data_source_name = data_source_name || @data_source_name
 
     if @connections[data_source_name] == nil
-      data_source_info = data_sources.list[param_to_sym(data_source_name)]
+
+      data_source_info = nil
+      GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+        data_source_info = data_sources.list[param_to_sym(data_source_name)]
+      end
+
       raise DataSourceNotFoundError.new(data_source_name) if data_source_info == nil
 
       @connections[data_source_name] = connect(data_source_info, nil)

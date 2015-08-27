@@ -1,11 +1,6 @@
-def group
-  GroupSQLiteStore.new
-end
-
 class GroupSQLiteStore < SQLiteStore
   def load(group_name)
     group = db[:groups].where(group_name: group_name).first
-    self.close
 
     if group
     then
@@ -19,7 +14,6 @@ class GroupSQLiteStore < SQLiteStore
     group_members = db[:group_users].where(group_name: group_name)
     members_list = []
     group_members.each { |mapping| members_list.push(mapping[:username]) }
-    self.close
     members_list
   end
 
@@ -55,8 +49,6 @@ class GroupSQLiteStore < SQLiteStore
         db[:group_users].insert(group_name: group_name, username: member_name.to_s)
       end
     end
-
-    self.close
   end
 
   def list
@@ -64,8 +56,6 @@ class GroupSQLiteStore < SQLiteStore
     db[:groups].collect do |group|
       groups.push(group[:group_name])
     end
-
-    self.close
     groups
   end
 
@@ -77,8 +67,6 @@ class GroupSQLiteStore < SQLiteStore
     groups.each do |group|
       groups_list.push(group[:group_name])
     end
-
-    self.close
     groups_list
   end
 
@@ -90,20 +78,16 @@ class GroupSQLiteStore < SQLiteStore
     groups.each do |group|
       groups_list.push(group[:group_name])
     end
-
-    self.close
     groups_list
   end
 
   def delete(group_name)
     db[:groups].where(group_name: group_name).delete
     db[:group_users].where(group_name: group_name).delete
-    self.close
   end
 
   def is_member(group_name, username)
     res = db[:group_users].where(group_name: group_name, username: username).first
-    self.close
     res != nil
   end
 end

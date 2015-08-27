@@ -1,15 +1,6 @@
-def data_source
-  DataSourceSQLiteStore.new
-end
-
-def data_sources
-  DataSourceSQLiteStore.new
-end
-
 class DataSourceSQLiteStore < SQLiteStore
   def load(data_source_name)
     data_source = db[:data_sources].where(data_source_name: data_source_name).first
-    self.close
     if data_source
     then
       to_displayable_hash(data_source_name, get_attributes_hash(data_source_name), get_permissions_hash(data_source_name))
@@ -22,7 +13,6 @@ class DataSourceSQLiteStore < SQLiteStore
     data_source_attributes = db[:data_source_attributes].where(data_source_name: data_source_name)
     attributes_hash = {}
     data_source_attributes.each{|attr| attributes_hash[param_to_sym(attr[:attribute_name])] = attr[:attribute_value] }
-    self.close
     attributes_hash
   end
 
@@ -37,8 +27,6 @@ class DataSourceSQLiteStore < SQLiteStore
     data_source_permissions.each do |permission|
       permissions_hash[param_to_sym(permission[:entity])][param_to_sym(permission[:entity_name])] = permission[:permission]
     end
-
-    self.close
 
     permissions_hash
   end
@@ -110,38 +98,31 @@ class DataSourceSQLiteStore < SQLiteStore
                                             permission: permission.to_s)
       end
     end
-
-    self.close
   end
 
   def list
     data_sources = db[:data_sources].collect
-    self.close
     to_list_hash(data_sources)
   end
 
   def list_public
     data_sources = db[:data_sources].where(:data_source_name => db[:data_source_permissions].where(entity: 'all').where(entity_name: 'all').select(:data_source_name))
-    self.close
     to_list_hash(data_sources)
   end
 
   def list_created_by(username)
     data_sources = db[:data_sources].where(creator: username)
-    self.close
     to_list_hash(data_sources)
   end
 
   def list_shared_with(username)
     username = param_to_sym(username).to_s
     data_sources = db[:data_sources].where(:data_source_name => db[:data_source_permissions].where(entity: 'user').where(entity_name: username).select(:data_source_name))
-    self.close
     to_list_hash(data_sources)
   end
 
   def list_shared_with_user_groups(username)
     data_sources = db[:data_sources].where(:data_source_name => db[:data_source_permissions].where(entity: 'group').where(:entity_name => db[:group_users].where(username: username).select(:group_name)).select(:data_source_name))
-    self.close
     to_list_hash(data_sources)
   end
 
@@ -159,13 +140,14 @@ class DataSourceSQLiteStore < SQLiteStore
     db[:data_sources].where(data_source_name: data_source_name).delete
     db[:data_source_attributes].where(data_source_name: data_source_name).delete
     db[:data_source_permissions].where(data_source_name: data_source_name).delete
-    self.close
   end
 
   def get_user_permissions(data_source_name, username)
 
-    if user.is_admin(username)
-      return 'admin'
+    GingerResource.access(GingerResourceType::USER) do |user|
+      if user.is_admin(username)
+        return 'admin'
+      end
     end
 
     username_str = username
@@ -174,13 +156,11 @@ class DataSourceSQLiteStore < SQLiteStore
     user_groups = db[:group_users].where(username: username_str).select(:group_name)
     permissions_list = db[:data_source_permissions].where(data_source_name: data_source_name).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
 
-    self.close
     self.get_highest_permission(permissions_list)
   end
 
   def is_creator(data_source_name, username)
     res = db[:data_sources].where(data_source_name: data_source_name, creator: username).first
-    self.close
     res != nil
   end
 end
