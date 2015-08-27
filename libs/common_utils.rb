@@ -27,23 +27,3 @@ def permissions_string_to_hash(permissions_string)
 
   permissions_hash
 end
-
-def get_highest_permission(permissions_list)
-  permissions_priority = {
-      :forbidden => 0,
-      :read => 1,
-      :preview => 2,
-      :write => 3
-  }
-
-  current_permission = 'forbidden'
-
-  permissions_list.each do |perm|
-    permission = perm[:permission]
-    if permissions_priority[param_to_sym(permission)] > permissions_priority[param_to_sym(current_permission)]
-      current_permission = permission
-    end
-  end
-
-  current_permission
-end

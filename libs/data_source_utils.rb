@@ -43,6 +43,25 @@ class DataSourceSQLiteStore < SQLiteStore
     permissions_hash
   end
 
+  def get_highest_permission(permissions_list)
+    permissions_priority = {
+        :forbidden => 0,
+        :read => 1,
+        :write => 2
+    }
+
+    current_permission = 'forbidden'
+
+    permissions_list.each do |perm|
+      permission = perm[:permission]
+      if permissions_priority[param_to_sym(permission)] > permissions_priority[param_to_sym(current_permission)]
+        current_permission = permission
+      end
+    end
+
+    current_permission
+  end
+
   def to_hash(data_source_name, attributes_hash, permissions_hash)
     {
       :data_source_name => data_source_name,
@@ -155,7 +174,7 @@ class DataSourceSQLiteStore < SQLiteStore
     permissions_list = db[:data_source_permissions].where(data_source_name: data_source_name).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
 
     self.close
-    get_highest_permission(permissions_list)
+    self.get_highest_permission(permissions_list)
   end
 
   def is_creator(data_source_name, username)

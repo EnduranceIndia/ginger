@@ -32,6 +32,25 @@ class PageSQLiteStore < SQLiteStore
     permissions_hash
   end
 
+  def get_highest_permission(permissions_list)
+    permissions_priority = {
+        :forbidden => 0,
+        :read => 1,
+        :write => 2
+    }
+
+    current_permission = 'forbidden'
+
+    permissions_list.each do |perm|
+      permission = perm[:permission]
+      if permissions_priority[param_to_sym(permission)] > permissions_priority[param_to_sym(current_permission)]
+        current_permission = permission
+      end
+    end
+
+    current_permission
+  end
+
   def save(page_id, content, permissions, creator)
     existing_page = load(page_id)
 
@@ -135,7 +154,7 @@ class PageSQLiteStore < SQLiteStore
     permissions_list = db[:page_permissions].where(page_id: page_id).where{Sequel.|(Sequel.&({:entity => 'user'}, {:entity_name => username}), Sequel.&({:entity => 'group'}, {:entity_name => user_groups}), Sequel.&({:entity => 'all'}, {:entity_name => 'all'}))}.select(:permission).all
 
     self.close
-    get_highest_permission(permissions_list)
+    self.get_highest_permission(permissions_list)
   end
 
   def is_creator(page_id, username)
