@@ -47,7 +47,8 @@ class DataSourceSQLiteStore < SQLiteStore
     permissions_priority = {
         :forbidden => 0,
         :read => 1,
-        :write => 2
+        :query => 2,
+        # :admin => 3 - This permission is passed directly
     }
 
     current_permission = 'forbidden'
@@ -163,8 +164,8 @@ class DataSourceSQLiteStore < SQLiteStore
 
   def get_user_permissions(data_source_name, username)
 
-    if is_creator(data_source_name, username)
-      return 'write'
+    if user.is_admin(username)
+      return 'admin'
     end
 
     username_str = username

@@ -190,7 +190,7 @@ class Ginger < Sinatra::Base
 
     @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
 
-    if @user_permission != 'write'
+    if @user_permission != 'admin'
       redirect to('/forbidden')
     end
 
@@ -210,13 +210,13 @@ class Ginger < Sinatra::Base
 
     @data_source = data_source.load(@data_source_name)
 
+    @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+
+    if @user_permission != 'admin'
+      redirect to('/forbidden')
+    end
+
     if @data_source
-      @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
-
-      if @user_permission != 'write'
-        redirect to('/forbidden')
-      end
-
       haml :show_data_source
     else
       @page_title = 'New Data Source'
@@ -230,20 +230,16 @@ class Ginger < Sinatra::Base
     data_source_name = params[:name]
     attributes_string = params[:attributes]
 
-    data_source = data_sources.load(data_source_name)
+    user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
 
-    if data_source
-      user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
-
-      if user_permission != 'write'
-        redirect to('/forbidden')
-      end
+    if user_permission != 'admin'
+      redirect to('/forbidden')
     end
 
     permissions = {
-        :user => permissions_string_to_hash(params[:user_permissions]),
-        :group => permissions_string_to_hash(params[:group_permissions]),
-        :all => permissions_string_to_hash(params[:all_permissions])
+      :user => permissions_string_to_hash(params[:user_permissions]),
+      :group => permissions_string_to_hash(params[:group_permissions]),
+      :all => permissions_string_to_hash(params[:all_permissions])
     }
 
     data_sources.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
@@ -426,9 +422,12 @@ class Ginger < Sinatra::Base
   post '/groups/:group_name', :auth => [:user] do
     group_name = params[:group_name]
 
+    group_obj = group.load(group_name)
 
-    unless group.is_member(group_name, session[:username])
-      redirect to('/forbidden')
+    if group_obj
+      unless group.is_member(group_name, session[:username])
+        redirect to('/forbidden')
+      end
     end
 
     members_string = params[:members]
