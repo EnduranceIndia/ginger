@@ -423,6 +423,19 @@ class Ginger < Sinatra::Base
         :content => params[:content]
     }
 
+    page_data_source = get_page_data_source(params[:content])
+
+    if page_data_source
+      page_data_source = page_data_source.to_s
+
+      GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+        user_permission = data_sources.get_user_permissions(page_data_source, session[:username])
+        if user_permission != 'query'
+          redirect to('/forbidden')
+        end
+      end
+    end
+
     permissions = {
         :user => permissions_string_to_hash(params[:user_permissions]),
         :group => permissions_string_to_hash(params[:group_permissions]),

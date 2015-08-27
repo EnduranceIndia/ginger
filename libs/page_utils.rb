@@ -391,3 +391,18 @@ def emit_chart(chart_type, matrix, cols, _, title, x_title, y_title, height, wid
       } </script> <div id=\"#{name}\" style=\"#{width_clause} #{height_clause}\"></div>"
 end
 
+def get_page_data_source(content)
+  data_source = nil
+  doc_content = parse_ginger_doc(content)
+  if doc_content
+    doc_content = doc_content[0]
+    if doc_content
+      doc_content = doc_content[:data]
+      if doc_content
+        data_source = doc_content[:data_source]
+      end
+    end
+  end
+  data_source
+end
+
