@@ -32,4 +32,10 @@ class UserSQLiteStore < SQLiteStore
       :username => user[:username]
     }
   end
+
+  def is_admin(username)
+    entry = db[:group_users].where(username: username, group_name: 'admin').first
+    self.close
+    entry != nil
+  end
 end
