@@ -430,7 +430,7 @@ class Ginger < Sinatra::Base
 
       GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
         user_permission = data_sources.get_user_permissions(page_data_source, session[:username])
-        if user_permission != 'query'
+        unless user_permission == 'query' or user_permission == 'admin'
           redirect to('/forbidden')
         end
       end
