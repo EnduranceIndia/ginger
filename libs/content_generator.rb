@@ -284,8 +284,6 @@ class ContentGenerator
 
     template_params = parameters[:data][:arguments] || {}
 
-    conf = get_conf
-
     if parameters[:data][:data_variable]
       data_variable = parameters[:data][:data_variable].to_s
 
