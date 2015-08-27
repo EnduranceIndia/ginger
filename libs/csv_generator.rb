@@ -27,8 +27,6 @@ class CSVGenerator < ContentGenerator
     request_params = stored_data[:request_params]
     template_params = parameters[:data][:arguments] || {}
 
-    conf = get_conf
-
     if parameters[:data][:data_source_variable]
       data_source_name = stored_data[:user_variables][parameters[:data][:data_source_variable].to_s]
     else
