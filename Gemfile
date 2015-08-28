@@ -13,6 +13,7 @@ gem 'parslet'
 gem 'sqlite3'
 gem 'unicorn'
 gem 'net-ldap'
+gem 'rack-session-file'
 
 # Gems for tests
 gem 'rspec'

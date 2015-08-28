@@ -2,7 +2,7 @@
 # note the trailing slash in this example
 @dir = '/path/to/ginger/'
 
-worker_processes 1
+worker_processes 5
 working_directory @dir
 
 timeout 30

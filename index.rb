@@ -13,6 +13,7 @@ require 'uri'
 require 'parallel'
 require 'net/ldap'
 require 'parslet'
+require 'rack/session/file'
 
 BASE = File.dirname(__FILE__)
 
@@ -39,7 +40,8 @@ require "#{BASE}/libs/resources.rb"
 
 class Ginger < Sinatra::Base
 
-  enable :sessions
+  use Rack::Session::File, :storage => 'tmp',
+      :expire_after => 1800
 
   set(:auth) do |*_|
     condition do
