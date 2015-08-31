@@ -1,13 +1,13 @@
 def env_conf
   {
     :authentication => {
-      :example_com => {
+      'example_.com'.to_sym => {
         :type => 'ldap',
         :ldap_server => 'ldap.example.com',
         :ldap_port => 389
       },
       # XXX: Remove this in production
-      :localhost => {
+      'localhost'.to_sym => {
           :type => 'ldap',
           :ldap_server => 'localhost',
           :ldap_port => 389

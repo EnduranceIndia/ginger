@@ -32,5 +32,5 @@ end
 #puts result
 
 def param_to_sym(param)
-  param.to_s.gsub(/\s+/, '_').gsub(/\.+/, '_').downcase.to_sym
+  param.to_sym
 end
