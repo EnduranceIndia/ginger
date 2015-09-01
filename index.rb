@@ -26,6 +26,7 @@ require "#{BASE}/libs/page_utils"
 require "#{BASE}/libs/database"
 require "#{BASE}/libs/stop_evaluation"
 require "#{BASE}/libs/ginger_parser"
+require "#{BASE}/libs/form_parser"
 require "#{BASE}/libs/content_generator"
 require "#{BASE}/libs/html_generator"
 require "#{BASE}/libs/csv_generator"
@@ -451,6 +452,30 @@ class Ginger < Sinatra::Base
     redirect to("/page/#{page_id}")
   end
 
+  get '/forms', :auth => [:user] do
+    haml :list_forms
+  end
+
+  get '/forms/:form_id/edit', :auth => [:user] do
+    haml :edit_form
+  end
+
+  post '/forms/:form_id/edit', :auth => [:user] do
+
+  end
+
+  get '/forms/:form_id/', :auth => [:user] do
+    redirect to("/forms/#{params[:form_id]}")
+  end
+
+  get '/forms/:form_id', :auth => [:user] do
+    haml :show_form
+  end
+
+  post '/forms/:form_id', :auth => [:user] do
+
+  end
+
   get '/groups', :auth => [:user] do
     @group_list = nil
     GingerResource.access(GingerResourceType::GROUP) do |group|
@@ -566,6 +591,10 @@ class Ginger < Sinatra::Base
     end
 
     haml :my_pages
+  end
+
+  get '/my/forms', :auth => [:user] do
+    haml :my_forms
   end
 
   get '/forbidden', :auth => [:user] do
