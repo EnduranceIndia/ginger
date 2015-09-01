@@ -40,3 +40,8 @@ class FormParser < Parslet::Parser
   rule(:document) { form.repeat.as(:form) }
   root(:document)
 end
+
+def parse_form_doc(doc)
+  parser = FormParser.new
+  parser.parse(doc)
+end
