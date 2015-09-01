@@ -1,8 +1,9 @@
 module GingerResourceType
   PAGE = 1
-  DATA_SOURCE = 2
-  USER = 3
-  GROUP = 4
+  FORM = 2
+  DATA_SOURCE = 3
+  USER = 4
+  GROUP = 5
 end
 
 class GingerResource
@@ -10,6 +11,8 @@ class GingerResource
     case type
       when GingerResourceType::PAGE
         resource = PageSQLiteStore.new
+      when GingerResourceType::FORM
+        resource = FormSQLiteStore.new
       when GingerResourceType::DATA_SOURCE
         resource = DataSourceSQLiteStore.new
       when GingerResourceType::USER

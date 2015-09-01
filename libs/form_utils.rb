@@ -1,0 +1,3 @@
+class FormSQLiteStore < SQLiteStore
+
+end
