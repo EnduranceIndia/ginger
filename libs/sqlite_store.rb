@@ -54,6 +54,14 @@ class SQLiteStore
         String :creator
       end
 
+      db.create_table(:forms) do
+        primary_key :id, type: Bignum
+        String :form_id, unique: true
+        Text :title
+        Text :content
+        String :creator
+      end
+
       db.create_table(:users) do
         primary_key :id, type: Bignum
         String :username, unique: true
@@ -93,6 +101,13 @@ class SQLiteStore
 
       db.create_table(:page_permissions) do
         String :page_id
+        String :entity
+        String :entity_name
+        String :permission
+      end
+
+      db.create_table(:form_permissions) do
+        String :form_id
         String :entity
         String :entity_name
         String :permission
