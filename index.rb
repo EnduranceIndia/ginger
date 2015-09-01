@@ -454,15 +454,74 @@ class Ginger < Sinatra::Base
   end
 
   get '/forms', :auth => [:user] do
+    @list_of_forms = nil
+    GingerResource.access(GingerResourceType::FORM) do |form|
+      @list_of_forms = form.list_public
+    end
+
     haml :list_forms
   end
 
   get '/forms/:form_id/edit', :auth => [:user] do
+    @form_id = params[:form_id]
+
+    @user_permission = nil
+    GingerResource.access(GingerResourceType::FORM) do |form|
+      @user_permission = form.get_user_permissions(@form_id, session[:username])
+    end
+
+    if @user_permission != 'edit'
+      redirect to('/forbidden')
+    end
+
+    @form = nil
+
+    @page_title = 'Edit Form'
+
+    GingerResource.access(GingerResourceType::FORM) do |form|
+      @form = form.load(@form_id)
+    end
+
     haml :edit_form
   end
 
   post '/forms/:form_id/edit', :auth => [:user] do
+    form_id = params[:form_id]
 
+    form_obj = nil
+    GingerResource.access(GingerResourceType::FORM) do |form|
+      form_obj = form.load(form_id)
+    end
+
+    if form_obj
+      user_permission = nil
+      GingerResource.access(GingerResourceType::FORM) do |form|
+        user_permission = form.get_user_permissions(form_id, session[:username])
+      end
+
+      if user_permission != 'edit'
+        redirect to('/forbidden')
+      end
+    end
+
+    content = {
+        :title => params[:title],
+        :content => params[:content]
+    }
+
+    # TODO: Check data source permissions here
+
+    permissions = {
+        :user => permissions_string_to_hash(params[:user_permissions]),
+        :group => permissions_string_to_hash(params[:group_permissions]),
+        :all => permissions_string_to_hash(params[:all_permissions])
+    }
+
+    GingerResource.access(GingerResourceType::FORM) do |form|
+      form.save(form_id, content, permissions, session[:username])
+    end
+
+    redirect to("/form/#{form_id}")
   end
 
   get '/forms/:form_id/', :auth => [:user] do
@@ -470,7 +529,30 @@ class Ginger < Sinatra::Base
   end
 
   get '/forms/:form_id', :auth => [:user] do
-    haml :show_form
+    @form_id = params[:form_id]
+
+    @form = nil
+
+    GingerResource.access(GingerResourceType::FORM) do |form|
+      @form = form.load(@form_id)
+    end
+
+    if @form
+      @user_permission = nil
+      GingerResource.access(GingerResourceType::FORM) do |form|
+        @user_permission = form.get_user_permissions(@form_id, session[:username])
+      end
+
+      if @user_permission == 'forbidden'
+        redirect to('/forbidden')
+      end
+
+      haml :show_form
+    else
+      @page_title = 'New Form'
+      @form = {}
+      haml :edit_form
+    end
   end
 
   post '/forms/:form_id', :auth => [:user] do
