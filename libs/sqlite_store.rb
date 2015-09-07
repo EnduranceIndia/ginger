@@ -45,57 +45,13 @@ class SQLiteStore
       end
 
       db[:version].insert(0)
+      @version = 0
 
       db.create_table(:pages) do
         primary_key :id, type: Bignum
         String :page_id, unique: true
         Text :title
         Text :content
-        String :creator
-      end
-
-      db.create_table(:users) do
-        primary_key :id, type: Bignum
-        String :username, unique: true
-      end
-
-      db.create_table(:groups) do
-        primary_key :id, type: Bignum
-        String :group_name, unique: true
-        String :creator
-      end
-
-      db.create_table(:group_users) do
-        String :group_name
-        String :username
-        primary_key :group_name, :username
-      end
-
-      db.create_table(:data_sources) do
-        primary_key :id, type: Bignum
-        String :data_source_name, unique: true
-        String :creator
-      end
-
-      db.create_table(:data_source_attributes) do
-        String :data_source_name
-        String :attribute_name
-        String :attribute_value
-        primary_key :data_source_name, :attribute_name
-      end
-
-      db.create_table(:data_source_permissions) do
-        String :data_source_name
-        String :entity
-        String :entity_name
-        String :permission
-      end
-
-      db.create_table(:page_permissions) do
-        String :page_id
-        String :entity
-        String :entity_name
-        String :permission
       end
 
       FlatFileStore.new.list.each { |id|
@@ -110,6 +66,65 @@ class SQLiteStore
 
       self.close
     end
+
+    if @version == 0
+      begin
+        db.alter_table(:pages) do
+          add_column :creator, String, :default=>'Ginger'
+        end
+
+        db.create_table(:users) do
+          primary_key :id, type: Bignum
+          String :username, unique: true
+        end
+
+        db.create_table(:groups) do
+          primary_key :id, type: Bignum
+          String :group_name, unique: true
+          String :creator
+        end
+
+        db.create_table(:group_users) do
+          String :group_name
+          String :username
+          primary_key :group_name, :username
+        end
+
+        db.create_table(:data_sources) do
+          primary_key :id, type: Bignum
+          String :data_source_name, unique: true
+          String :creator
+        end
+
+        db.create_table(:data_source_attributes) do
+          String :data_source_name
+          String :attribute_name
+          String :attribute_value
+          primary_key :data_source_name, :attribute_name
+        end
+
+        db.create_table(:data_source_permissions) do
+          String :data_source_name
+          String :entity
+          String :entity_name
+          String :permission
+        end
+
+        db.create_table(:page_permissions) do
+          String :page_id
+          String :entity
+          String :entity_name
+          String :permission
+        end
+
+        update_database_version(1)
+        @version = 1
+
+        self.close
+      rescue
+        $stderr.write("Database already patched, skipping\n")
+      end
+    end
   end
 
   def close
@@ -121,7 +136,4 @@ class SQLiteStore
 end
 
 store = SQLiteStore.new
-
-if store.version == -1
-  store.migrate
-end
+store.migrate
