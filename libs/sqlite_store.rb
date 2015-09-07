@@ -110,25 +110,29 @@ class SQLiteStore
           String :permission
         end
 
+        db.create_table(:page_permissions) do
+          String :page_id
+          String :entity
+          String :entity_name
+          String :permission
+        end
+
         conf = get_conf
         if conf.has_key?('datasources')
           data_sources_hash = conf['datasources']
 
           data_sources_hash.each do |data_source_name, data_source_attributes|
             db[:data_sources].insert(data_source_name: data_source_name, creator: 'Ginger')
+            db[:data_source_permissions].insert(data_source_name: data_source_name,
+                                                entity: 'all',
+                                                entity_name: 'all',
+                                                permission: 'read')
             data_source_attributes.each do |attribute_name, attribute_value|
               db[:data_source_attributes].insert(data_source_name: data_source_name,
                                                  attribute_name: attribute_name,
                                                  attribute_value: attribute_value)
             end
           end
-        end
-
-        db.create_table(:page_permissions) do
-          String :page_id
-          String :entity
-          String :entity_name
-          String :permission
         end
 
         update_database_version(1)
