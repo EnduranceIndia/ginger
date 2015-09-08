@@ -69,11 +69,6 @@ class SQLiteStore
 
     if @version == 0
       begin
-        # Patch existing tables
-        db.alter_table(:pages) do
-          add_column :creator, String, :default=>'Ginger'
-        end
-
         # Create new tables
         db.create_table(:users) do
           primary_key :id, type: Bignum
@@ -144,6 +139,11 @@ class SQLiteStore
                                        entity: 'all',
                                        entity_name: 'all',
                                        permission: 'read')
+        end
+
+        # Patch existing tables
+        db.alter_table(:pages) do
+          add_column :creator, String, :default=>'Ginger'
         end
 
         update_database_version(1)
