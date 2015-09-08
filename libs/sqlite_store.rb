@@ -69,10 +69,12 @@ class SQLiteStore
 
     if @version == 0
       begin
+        # Patch existing tables
         db.alter_table(:pages) do
           add_column :creator, String, :default=>'Ginger'
         end
 
+        # Create new tables
         db.create_table(:users) do
           primary_key :id, type: Bignum
           String :username, unique: true
@@ -117,6 +119,7 @@ class SQLiteStore
           String :permission
         end
 
+        # Migrate data
         conf = get_conf
         if conf.has_key?('datasources')
           data_sources_hash = conf['datasources']
@@ -133,6 +136,14 @@ class SQLiteStore
                                                  attribute_value: attribute_value)
             end
           end
+        end
+
+        pages = db[:pages].collect
+        pages.each do |page|
+          db[:page_permissions].insert(page_id: page[:page_id],
+                                       entity: 'all',
+                                       entity_name: 'all',
+                                       permission: 'read')
         end
 
         update_database_version(1)
