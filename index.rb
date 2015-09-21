@@ -40,7 +40,7 @@ require "#{BASE}/libs/resources.rb"
 
 class Ginger < Sinatra::Base
 
-  use Rack::Session::File, :storage => 'tmp',
+  use Rack::Session::File, :storage => "#{get_conf[:base_files_directory]}/sessions",
       :expire_after => 1800
 
   set(:auth) do |*_|
