@@ -672,9 +672,9 @@ The result set would look something like this:
 In each row, the first column contains the title, and the second column contains corresponding value.
 
 <pre>
-[:people_data:bar (x_title='Some title' y_title='Some other title') select city, count(*) from people group by city :]</pre>
+[:people_data:bar (xtitle='Some title' ytitle='Some other title') select city, count(*) from people group by city :]</pre>
 
-Bar and line charts are similar. x_title and y_title refer to the captions on the x and y axis, but are not compulsory.
+Bar and line charts are similar. xtitle and ytitle refer to the captions on the x and y axis, but are not compulsory.
 
 h2. Forms
 
@@ -725,26 +725,26 @@ h2. Side-by-side panel formatting for tables
 On the line before each table, put the following tag:
 
 <pre>
-<:side_by_side:></pre>
+<:sidebyside:></pre>
 
 After all the side-by-side tables, put this tag:
 
 <pre>
-<:side_by_side:end></pre>
+<:sidebyside:end></pre>
 
 For example:
 
 <pre>
-<:side_by_side:>
+<:sidebyside:>
 [:people_data select * from people {: where city='::city::'' :} :]
 
-<:side_by_side:>
+<:sidebyside:>
 [:people_data select * from people {:city? where age > 20 :} :]
 
-<:side_by_side:>
+<:sidebyside:>
 [:people_data select * from people {:city? where state='::state::' :} :]
 
-<:side_by_side:end:></pre>
+<:sidebyside:end:></pre>
 
 h2. Conditional formatting
 

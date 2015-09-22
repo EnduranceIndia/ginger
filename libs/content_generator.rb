@@ -62,8 +62,8 @@ class ContentGenerator
     parameters
   end
 
-  def process_side_by_side(parameters)
-    if parameters[:side_by_side][:end]
+  def process_sidebyside(parameters)
+    if parameters[:sidebyside][:end]
       text("<div style='clear: both;'></div>")
     else
       @markdown_table_class_added = true
@@ -393,7 +393,7 @@ class ContentGenerator
         end
       end
     elsif %w(line, bar, pie).include?(parameters[:data][:format].to_s)
-      text(emit_chart(parameters[:data][:format].to_s.to_sym, result_set, cols, template_params[:name], template_params[:title], template_params[:x_title], template_params[:y_title], template_params[:height].to_i, template_params[:width].to_i))
+      text(emit_chart(parameters[:data][:format].to_s.to_sym, result_set, cols, template_params[:name], template_params[:title], template_params[:xtitle], template_params[:ytitle], template_params[:height].to_i, template_params[:width].to_i))
     else
       if result_set.length == 1 && result_set[0].length == 1
         text((result_set[0][0] || 'nil').to_s)
