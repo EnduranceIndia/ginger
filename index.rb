@@ -38,542 +38,540 @@ require "#{BASE}/libs/group_utils"
 require "#{BASE}/libs/resources.rb"
 
 
-class Ginger < Sinatra::Base
+use Rack::Session::File, :storage => "#{get_conf[:base_files_directory]}/sessions",
+    :expire_after => 1800
 
-  use Rack::Session::File, :storage => "#{get_conf[:base_files_directory]}/sessions",
-      :expire_after => 1800
-
-  set(:auth) do |*_|
-    condition do
-      unless session[:logged_in]
-        redirect to('/login')
-      end
-    end
-  end
-
-  def template_to_html(content, params)
-    converters = [
-        proc { |content_value| parse_ginger_doc(content_value) },
-        proc { |content_value| HTMLGenerator.new(params).generate(content_value) },
-        proc { |content_value|
-          redcloth = RedCloth.new(content_value)
-          redcloth.extend FormTag
-          redcloth.to_html(content_value)
-        }
-    ]
-
-    new_content = content
-
-    converters.each { |converter|
-      new_content = converter.call(new_content)
-    }
-
-    new_content
-  end
-
-  def store_param_data(stored_data, template_params, params, name, title, type)
-    param_name = "p_#{name}"
-
-    if params.has_key?(param_name) && params[param_name].length > 0
-      stored_data[:request_params][name] = {:value => params[param_name], :type => type}
-    else
-      if (template_params[:required].to_s || '').downcase == 'true'
-        raise StopEvaluation.new(title)
-      end
-    end
-  end
-
-  def add_cache_request(url)
-    return if url.index('cache=true') != nil
-    return url + '&cache=true' if url.index('?') != nil
-    url + '?cache=true'
-  end
-
-  def remove_cache_request(url, cache_switch)
-    return '' if url == nil
-    clean_url = url.gsub(/&cache=#{cache_switch}/, '')
-    clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, '')
-    clean_url = clean_url.gsub(/cache=#{cache_switch}/, '') if clean_url.index("cache=#{cache_switch}") == 0
-    clean_url.gsub(/\?\s*$/, '')
-  end
-
-  get '/', :auth => [:user] do
-    redirect to('/my/pages')
-  end
-
-  get '/login' do
-    if session[:logged_in]
-      redirect to('/')
-    end
-    haml :login
-  end
-
-  post '/login' do
-    username = params[:username]
-    password = params[:password]
-
-    ldap_auth_result = ldap_authenticate(username, password)
-
-    if ldap_auth_result[:status] == 'authenticated'
-
-      GingerResource.access(GingerResourceType::USER) do |user|
-        user.add_user(username)
-      end
-
-      session[:logged_in] = true
-      session[:username] = username
-      redirect to('/')
-    else
-      session[:logged_in] = false
-      session[:username] = ''
+set(:auth) do |*_|
+  condition do
+    unless session[:logged_in]
       redirect to('/login')
     end
   end
+end
 
-  get '/logout' do
-    session[:logged_in] = false
-    session[:username] = ''
+def template_to_html(content, params)
+  converters = [
+      proc { |content_value| parse_ginger_doc(content_value) },
+      proc { |content_value| HTMLGenerator.new(params).generate(content_value) },
+      proc { |content_value|
+        redcloth = RedCloth.new(content_value)
+        redcloth.extend FormTag
+        redcloth.to_html(content_value)
+      }
+  ]
+
+  new_content = content
+
+  converters.each { |converter|
+    new_content = converter.call(new_content)
+  }
+
+  new_content
+end
+
+def store_param_data(stored_data, template_params, params, name, title, type)
+  param_name = "p_#{name}"
+
+  if params.has_key?(param_name) && params[param_name].length > 0
+    stored_data[:request_params][name] = {:value => params[param_name], :type => type}
+  else
+    if (template_params[:required].to_s || '').downcase == 'true'
+      raise StopEvaluation.new(title)
+    end
+  end
+end
+
+def add_cache_request(url)
+  return if url.index('cache=true') != nil
+  return url + '&cache=true' if url.index('?') != nil
+  url + '?cache=true'
+end
+
+def remove_cache_request(url, cache_switch)
+  return '' if url == nil
+  clean_url = url.gsub(/&cache=#{cache_switch}/, '')
+  clean_url = clean_url.gsub(/\?cache=#{cache_switch}/, '')
+  clean_url = clean_url.gsub(/cache=#{cache_switch}/, '') if clean_url.index("cache=#{cache_switch}") == 0
+  clean_url.gsub(/\?\s*$/, '')
+end
+
+get '/', :auth => [:user] do
+  redirect to('/my/pages')
+end
+
+get '/login' do
+  if session[:logged_in]
     redirect to('/')
   end
+  haml :login
+end
 
-  get '/explore', :auth => [:user] do
-    @data_source_list = nil
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      @data_source_list = data_sources.list_public.keys
+post '/login' do
+  username = params[:username]
+  password = params[:password]
+
+  ldap_auth_result = ldap_authenticate(username, password)
+
+  if ldap_auth_result[:status] == 'authenticated'
+
+    GingerResource.access(GingerResourceType::USER) do |user|
+      user.add_user(username)
     end
 
-    haml :list_data_sources
+    session[:logged_in] = true
+    session[:username] = username
+    redirect to('/')
+  else
+    session[:logged_in] = false
+    session[:username] = ''
+    redirect to('/login')
+  end
+end
+
+get '/logout' do
+  session[:logged_in] = false
+  session[:username] = ''
+  redirect to('/')
+end
+
+get '/explore', :auth => [:user] do
+  @data_source_list = nil
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    @data_source_list = data_sources.list_public.keys
   end
 
-  get '/explore/:data_source', :auth => [:user] do
-    data_source_name = params[:data_source]
+  haml :list_data_sources
+end
 
-    @user_permission = nil
-    data_source = nil
+get '/explore/:data_source', :auth => [:user] do
+  data_source_name = params[:data_source]
 
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      data_source = data_sources.list[param_to_sym(data_source_name)]
-      @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
-    end
+  @user_permission = nil
+  data_source = nil
 
-    if @user_permission == 'forbidden'
-      redirect to('/forbidden')
-    end
-
-    db = connect(data_source)
-
-    template = "h3. List of tables\n"
-
-    template += db.query_tables.collect { |table|
-      "* \"#{table.to_s}\":/explore/#{data_source_name}/#{table.to_s}"
-    }.join("\n")
-
-    @page = {
-        :content => template_to_html(template, {})
-    }
-
-    haml :show_page
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    data_source = data_sources.list[param_to_sym(data_source_name)]
+    @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
   end
 
-  get '/explore/:data_source/:table', :auth => [:user] do
-    data_source_name = params[:data_source]
-
-    data_source = nil
-    @user_permission = nil
-
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      data_source = data_sources.list[param_to_sym(data_source_name)]
-      @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
-    end
-
-    if @user_permission == 'forbidden'
-      redirect to('/forbidden')
-    end
-
-    db = connect(data_source)
-
-    template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
-
-    template += db.fields_for(params[:table]).collect { |field|
-      "|#{field[:name]}|#{field[:db_type]}|#{field[:primary_key.to_s]}|#{field[:allow_null]}|"
-    }.join("\n")
-
-    @page = {
-        :content => template_to_html(template, {})
-    }
-
-    haml :show_page
+  if @user_permission == 'forbidden'
+    redirect to('/forbidden')
   end
 
-  get '/data_source/:data_source_name/edit', :auth => [:user] do
-    @data_source_name = params[:data_source_name]
-    @data_source = nil
+  db = connect(data_source)
 
-    @user_permission = nil
+  template = "h3. List of tables\n"
 
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
-    end
+  template += db.query_tables.collect { |table|
+    "* \"#{table.to_s}\":/explore/#{data_source_name}/#{table.to_s}"
+  }.join("\n")
 
-    if @user_permission != 'admin'
-      redirect to('/forbidden')
-    end
+  @page = {
+      :content => template_to_html(template, {})
+  }
 
-    @page_title = 'Edit Data Source'
+  haml :show_page
+end
 
-    @data_source = nil
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      @data_source = data_sources.load(@data_source_name)
-    end
+get '/explore/:data_source/:table', :auth => [:user] do
+  data_source_name = params[:data_source]
 
+  data_source = nil
+  @user_permission = nil
+
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    data_source = data_sources.list[param_to_sym(data_source_name)]
+    @user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
+  end
+
+  if @user_permission == 'forbidden'
+    redirect to('/forbidden')
+  end
+
+  db = connect(data_source)
+
+  template = "h3. Schema of \"#{params[:table]}\"\n\ntable(table table-compact).\n|_. Name|_. Data Type |_. Primary Key |_. Allow null |\n"
+
+  template += db.fields_for(params[:table]).collect { |field|
+    "|#{field[:name]}|#{field[:db_type]}|#{field[:primary_key.to_s]}|#{field[:allow_null]}|"
+  }.join("\n")
+
+  @page = {
+      :content => template_to_html(template, {})
+  }
+
+  haml :show_page
+end
+
+get '/data_source/:data_source_name/edit', :auth => [:user] do
+  @data_source_name = params[:data_source_name]
+  @data_source = nil
+
+  @user_permission = nil
+
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+  end
+
+  if @user_permission != 'admin'
+    redirect to('/forbidden')
+  end
+
+  @page_title = 'Edit Data Source'
+
+  @data_source = nil
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    @data_source = data_sources.load(@data_source_name)
+  end
+
+  haml :edit_data_source
+end
+
+get '/data_source/:data_source_name/', :auth => [:user] do
+  redirect to("/data_source/#{params[:data_source_name]}")
+end
+
+get '/data_source/:data_source_name', :auth => [:user] do
+  @data_source_name = params[:data_source_name]
+
+  @data_source = nil
+  @user_permission = nil
+
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    @data_source = data_sources.load(@data_source_name)
+    @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
+  end
+
+  if @user_permission != 'admin'
+    redirect to('/forbidden')
+  end
+
+  if @data_source
+    haml :show_data_source
+  else
+    @page_title = 'New Data Source'
+    @data_source = {}
+    @data_source[:name] = @data_source_name
     haml :edit_data_source
   end
+end
 
-  get '/data_source/:data_source_name/', :auth => [:user] do
-    redirect to("/data_source/#{params[:data_source_name]}")
+post '/data_source/:data_source_name', :auth => [:user] do
+  data_source_name = params[:name]
+  attributes_string = params[:attributes]
+
+  user_permission = nil
+
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
   end
 
-  get '/data_source/:data_source_name', :auth => [:user] do
-    @data_source_name = params[:data_source_name]
+  if user_permission != 'admin'
+    redirect to('/forbidden')
+  end
 
-    @data_source = nil
+  permissions = {
+    :user => permissions_string_to_hash(params[:user_permissions]),
+    :group => permissions_string_to_hash(params[:group_permissions]),
+    :all => permissions_string_to_hash(params[:all_permissions])
+  }
+
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    data_sources.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
+  end
+
+  redirect to("/data_source/#{params[:data_source_name]}")
+end
+
+get '/pages', :auth => [:user] do
+  @list_of_pages = nil
+  GingerResource.access(GingerResourceType::PAGE) do |page|
+    @list_of_pages = page.list_public
+  end
+
+  haml :list_pages
+end
+
+get '/page/:page_id/edit', :auth => [:user] do
+  @page_id = params[:page_id]
+
+  @user_permission = nil
+  GingerResource.access(GingerResourceType::PAGE) do |page|
+    @user_permission = page.get_user_permissions(@page_id, session[:username])
+  end
+
+  if @user_permission != 'write'
+    redirect to('/forbidden')
+  end
+
+  @page = nil
+
+  @page_title = 'Edit page'
+
+  GingerResource.access(GingerResourceType::PAGE) do |page|
+    @page = page.load(@page_id)
+  end
+
+  haml :edit_page
+end
+
+get '/page/:page_id/', :auth => [:user] do
+  redirect to("/page/#{params[:page_id]}")
+end
+
+get '/page/:page_id', :auth => [:user] do
+  @page_id = params[:page_id]
+
+  @page = nil
+  GingerResource.access(GingerResourceType::PAGE) do |page|
+    @page = page.load(@page_id)
+  end
+
+  if @page
+
     @user_permission = nil
 
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      @data_source = data_sources.load(@data_source_name)
-      @user_permission = data_sources.get_user_permissions(@data_source_name, session[:username])
-    end
-
-    if @user_permission != 'admin'
-      redirect to('/forbidden')
-    end
-
-    if @data_source
-      haml :show_data_source
-    else
-      @page_title = 'New Data Source'
-      @data_source = {}
-      @data_source[:name] = @data_source_name
-      haml :edit_data_source
-    end
-  end
-
-  post '/data_source/:data_source_name', :auth => [:user] do
-    data_source_name = params[:name]
-    attributes_string = params[:attributes]
-
-    user_permission = nil
-
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      user_permission = data_sources.get_user_permissions(data_source_name, session[:username])
-    end
-
-    if user_permission != 'admin'
-      redirect to('/forbidden')
-    end
-
-    permissions = {
-      :user => permissions_string_to_hash(params[:user_permissions]),
-      :group => permissions_string_to_hash(params[:group_permissions]),
-      :all => permissions_string_to_hash(params[:all_permissions])
-    }
-
-    GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      data_sources.save(data_source_name, attr_string_to_hash(attributes_string), permissions, session[:username])
-    end
-
-    redirect to("/data_source/#{params[:data_source_name]}")
-  end
-
-  get '/pages', :auth => [:user] do
-    @list_of_pages = nil
-    GingerResource.access(GingerResourceType::PAGE) do |page|
-      @list_of_pages = page.list_public
-    end
-
-    haml :list_pages
-  end
-
-  get '/page/:page_id/edit', :auth => [:user] do
-    @page_id = params[:page_id]
-
-    @user_permission = nil
     GingerResource.access(GingerResourceType::PAGE) do |page|
       @user_permission = page.get_user_permissions(@page_id, session[:username])
     end
 
-    if @user_permission != 'write'
+    if @user_permission == 'forbidden'
       redirect to('/forbidden')
     end
 
-    @page = nil
+    uri = URI.parse(request.url)
 
-    @page_title = 'Edit page'
+    query_params = remove_cache_request(uri.query, true) || ''
+    last_modified_time, cached_page = get_cached_page(@page_id, query_params)
 
-    GingerResource.access(GingerResourceType::PAGE) do |page|
-      @page = page.load(@page_id)
+    if params[:id]
+      parse_tree = parse_ginger_doc(@page[:content])
+      content_type 'text/plain'
+
+      CSVGenerator.new(params).generate(parse_tree)
+    elsif params[:cache] != 'true' && cached_page
+      @page[:content] = cached_page
+      cached_time = Time.now - last_modified_time
+
+      minute = 60
+      hour = 60 * minute
+      day = 24 * hour
+
+      if cached_time / minute < 2
+        cached_time = "#{cached_time.round} seconds"
+      elsif cached_time / hour < 2
+        cached_time = "#{(cached_time / minute).round} minutes"
+      elsif cached_time / day < 2
+        cached_time = "#{(cached_time / hour).round} hours"
+      else
+        cached_time = "#{(cached_time / day).round} days"
+      end
+
+      @cached_time = "This page was cached #{cached_time} ago."
+    else
+      begin
+        @page[:content] = template_to_html(@page[:content], params)
+
+        if params[:cache] == 'true'
+          write_cached_page(@page_id, query_params, @page[:content])
+          redirect to(remove_cache_request(request.url, true))
+        end
+      rescue StopEvaluation => e
+        @page[:content] = e.message
+      end
     end
 
+    haml :show_page
+  else
+    @page_title = 'New page'
+    @page = {}
     haml :edit_page
   end
+end
 
-  get '/page/:page_id/', :auth => [:user] do
-    redirect to("/page/#{params[:page_id]}")
+post '/page/:page_id', :auth => [:user] do
+  page_id = params[:page_id]
+
+  page_obj = nil
+  GingerResource.access(GingerResourceType::PAGE) do |page|
+    page_obj = page.load(page_id)
   end
 
-  get '/page/:page_id', :auth => [:user] do
-    @page_id = params[:page_id]
-
-    @page = nil
+  if page_obj
+    user_permission = nil
     GingerResource.access(GingerResourceType::PAGE) do |page|
-      @page = page.load(@page_id)
+      user_permission = page.get_user_permissions(page_id, session[:username])
     end
 
-    if @page
-
-      @user_permission = nil
-
-      GingerResource.access(GingerResourceType::PAGE) do |page|
-        @user_permission = page.get_user_permissions(@page_id, session[:username])
-      end
-
-      if @user_permission == 'forbidden'
-        redirect to('/forbidden')
-      end
-      
-      uri = URI.parse(request.url)
-
-      query_params = remove_cache_request(uri.query, true) || ''
-      last_modified_time, cached_page = get_cached_page(@page_id, query_params)
-
-      if params[:id]
-        parse_tree = parse_ginger_doc(@page[:content])
-        content_type 'text/plain'
-
-        CSVGenerator.new(params).generate(parse_tree)
-      elsif params[:cache] != 'true' && cached_page
-        @page[:content] = cached_page
-        cached_time = Time.now - last_modified_time
-
-        minute = 60
-        hour = 60 * minute
-        day = 24 * hour
-
-        if cached_time / minute < 2
-          cached_time = "#{cached_time.round} seconds"
-        elsif cached_time / hour < 2
-          cached_time = "#{(cached_time / minute).round} minutes"
-        elsif cached_time / day < 2
-          cached_time = "#{(cached_time / hour).round} hours"
-        else
-          cached_time = "#{(cached_time / day).round} days"
-        end
-
-        @cached_time = "This page was cached #{cached_time} ago."
-      else
-        begin
-          @page[:content] = template_to_html(@page[:content], params)
-
-          if params[:cache] == 'true'
-            write_cached_page(@page_id, query_params, @page[:content])
-            redirect to(remove_cache_request(request.url, true))
-          end
-        rescue StopEvaluation => e
-          @page[:content] = e.message
-        end
-      end
-
-      haml :show_page
-    else
-      @page_title = 'New page'
-      @page = {}
-      haml :edit_page
+    if user_permission != 'write'
+      redirect to('/forbidden')
     end
   end
 
-  post '/page/:page_id', :auth => [:user] do
-    page_id = params[:page_id]
-
-    page_obj = nil
-    GingerResource.access(GingerResourceType::PAGE) do |page|
-      page_obj = page.load(page_id)
-    end
-
-    if page_obj
-      user_permission = nil
-      GingerResource.access(GingerResourceType::PAGE) do |page|
-        user_permission = page.get_user_permissions(page_id, session[:username])
-      end
-
-      if user_permission != 'write'
-        redirect to('/forbidden')
-      end
-    end
-
-    if params[:delete_page] == 'true'
-      page.delete(params[:page_id])
-      redirect to('/')
-    end
-
-    if params[:destroy_cache] == 'true'
-      destroy_cache(params[:page_id])
-      redirect to(request.url)
-    end
-
-    content = {
-        :title => params[:title],
-        :content => params[:content]
-    }
-
-    page_data_source = get_page_data_source(params[:content])
-
-    if page_data_source
-      page_data_source = page_data_source.to_s
-
-      GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-        user_permission = data_sources.get_user_permissions(page_data_source, session[:username])
-        unless user_permission == 'query' or user_permission == 'admin'
-          redirect to('/forbidden')
-        end
-      end
-    end
-
-    permissions = {
-        :user => permissions_string_to_hash(params[:user_permissions]),
-        :group => permissions_string_to_hash(params[:group_permissions]),
-        :all => permissions_string_to_hash(params[:all_permissions])
-    }
-
-    GingerResource.access(GingerResourceType::PAGE) do |page|
-      page.save(page_id, content, permissions, session[:username])
-    end
-
-    redirect to("/page/#{page_id}")
+  if params[:delete_page] == 'true'
+    page.delete(params[:page_id])
+    redirect to('/')
   end
 
-  get '/groups', :auth => [:user] do
-    @group_list = nil
-    GingerResource.access(GingerResourceType::GROUP) do |group|
-      @group_list = group.list
-    end
-
-    haml :list_groups
+  if params[:destroy_cache] == 'true'
+    destroy_cache(params[:page_id])
+    redirect to(request.url)
   end
 
-  get '/groups/:group_name/', :auth => [:user] do
-    redirect to("/group/#{params[:group_name]}")
-  end
+  content = {
+      :title => params[:title],
+      :content => params[:content]
+  }
 
-  get '/groups/:group_name', :auth => [:user] do
-    @group_name = params[:group_name]
+  page_data_source = get_page_data_source(params[:content])
 
-    @group = nil
-    @is_member = nil
-
-    GingerResource.access(GingerResourceType::GROUP) do |group|
-      @group = group.load(@group_name)
-      @is_member = group.is_member(@group_name, session[:username])
-    end
-
-    if @group
-    then
-      haml :show_group
-    else
-      @page_title = 'New Group'
-      @group = {}
-      @group[:group_name] = @group_name
-      @group[:members_list] = session[:username]
-      haml :edit_group
-    end
-  end
-
-  get '/groups/:group_name/edit', :auth => [:user] do
-    @group_name = params[:group_name]
-
-    GingerResource.access(GingerResourceType::GROUP) do |group|
-      unless group.is_member(@group_name, session[:username])
-        redirect to('/forbidden')
-      end
-    end
-
-    @group = nil
-
-    @page_title = 'Edit Group'
-
-    GingerResource.access(GingerResourceType::GROUP) do |group|
-      @group = group.load(@group_name)
-    end
-
-    haml :edit_group
-  end
-
-  post '/groups/:group_name', :auth => [:user] do
-    group_name = params[:group_name]
-
-    GingerResource.access(GingerResourceType::GROUP) do |group|
-      group_obj = group.load(group_name)
-      if group_obj
-        unless group.is_member(group_name, session[:username])
-          redirect to('/forbidden')
-        end
-      end
-    end
-
-    members_string = params[:members]
-
-    GingerResource.access(GingerResourceType::GROUP) do |group|
-      group.save(group_name, members_string_to_list(members_string), session[:username])
-    end
-
-    redirect to("/groups/#{params[:group_name]}")
-  end
-
-  get '/my/groups', :auth => [:user] do
-    @my_created_groups = nil
-    @my_groups = nil
-
-    GingerResource.access(GingerResourceType::GROUP) do |group|
-      @my_created_groups = group.list_created_by(session[:username])
-      @my_groups = group.list_user_groups(session[:username])
-    end
-
-    haml :my_groups
-  end
-
-  get '/my/data_sources', :auth =>  [:user] do
-    @my_created_data_sources = nil
-    @my_shared_data_sources = nil
-    @my_group_data_sources = nil
+  if page_data_source
+    page_data_source = page_data_source.to_s
 
     GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
-      @my_created_data_sources = data_sources.list_created_by(session[:username]).keys
-      @my_shared_data_sources = data_sources.list_shared_with(session[:username]).keys
-      @my_group_data_sources = data_sources.list_shared_with_user_groups(session[:username]).keys
+      user_permission = data_sources.get_user_permissions(page_data_source, session[:username])
+      unless user_permission == 'query' or user_permission == 'admin'
+        redirect to('/forbidden')
+      end
     end
-
-    haml :my_data_sources
   end
 
-  get '/my/pages', :auth => [:user] do
-    @my_created_pages = nil
-    @my_shared_pages = nil
-    @my_group_pages = nil
+  permissions = {
+      :user => permissions_string_to_hash(params[:user_permissions]),
+      :group => permissions_string_to_hash(params[:group_permissions]),
+      :all => permissions_string_to_hash(params[:all_permissions])
+  }
 
-    GingerResource.access(GingerResourceType::PAGE) do |page|
-      @my_created_pages = page.list_created_by(session[:username])
-      @my_shared_pages = page.list_shared_with(session[:username])
-      @my_group_pages = page.list_shared_with_user_groups(session[:username])
+  GingerResource.access(GingerResourceType::PAGE) do |page|
+    page.save(page_id, content, permissions, session[:username])
+  end
+
+  redirect to("/page/#{page_id}")
+end
+
+get '/groups', :auth => [:user] do
+  @group_list = nil
+  GingerResource.access(GingerResourceType::GROUP) do |group|
+    @group_list = group.list
+  end
+
+  haml :list_groups
+end
+
+get '/groups/:group_name/', :auth => [:user] do
+  redirect to("/group/#{params[:group_name]}")
+end
+
+get '/groups/:group_name', :auth => [:user] do
+  @group_name = params[:group_name]
+
+  @group = nil
+  @is_member = nil
+
+  GingerResource.access(GingerResourceType::GROUP) do |group|
+    @group = group.load(@group_name)
+    @is_member = group.is_member(@group_name, session[:username])
+  end
+
+  if @group
+  then
+    haml :show_group
+  else
+    @page_title = 'New Group'
+    @group = {}
+    @group[:group_name] = @group_name
+    @group[:members_list] = session[:username]
+    haml :edit_group
+  end
+end
+
+get '/groups/:group_name/edit', :auth => [:user] do
+  @group_name = params[:group_name]
+
+  GingerResource.access(GingerResourceType::GROUP) do |group|
+    unless group.is_member(@group_name, session[:username])
+      redirect to('/forbidden')
     end
-
-    haml :my_pages
   end
 
-  get '/forbidden', :auth => [:user] do
-    haml :forbidden
+  @group = nil
+
+  @page_title = 'Edit Group'
+
+  GingerResource.access(GingerResourceType::GROUP) do |group|
+    @group = group.load(@group_name)
   end
 
-  get '/help', :auth => [:user] do
-    help_text = <<-END
+  haml :edit_group
+end
+
+post '/groups/:group_name', :auth => [:user] do
+  group_name = params[:group_name]
+
+  GingerResource.access(GingerResourceType::GROUP) do |group|
+    group_obj = group.load(group_name)
+    if group_obj
+      unless group.is_member(group_name, session[:username])
+        redirect to('/forbidden')
+      end
+    end
+  end
+
+  members_string = params[:members]
+
+  GingerResource.access(GingerResourceType::GROUP) do |group|
+    group.save(group_name, members_string_to_list(members_string), session[:username])
+  end
+
+  redirect to("/groups/#{params[:group_name]}")
+end
+
+get '/my/groups', :auth => [:user] do
+  @my_created_groups = nil
+  @my_groups = nil
+
+  GingerResource.access(GingerResourceType::GROUP) do |group|
+    @my_created_groups = group.list_created_by(session[:username])
+    @my_groups = group.list_user_groups(session[:username])
+  end
+
+  haml :my_groups
+end
+
+get '/my/data_sources', :auth =>  [:user] do
+  @my_created_data_sources = nil
+  @my_shared_data_sources = nil
+  @my_group_data_sources = nil
+
+  GingerResource.access(GingerResourceType::DATA_SOURCE) do |data_sources|
+    @my_created_data_sources = data_sources.list_created_by(session[:username]).keys
+    @my_shared_data_sources = data_sources.list_shared_with(session[:username]).keys
+    @my_group_data_sources = data_sources.list_shared_with_user_groups(session[:username]).keys
+  end
+
+  haml :my_data_sources
+end
+
+get '/my/pages', :auth => [:user] do
+  @my_created_pages = nil
+  @my_shared_pages = nil
+  @my_group_pages = nil
+
+  GingerResource.access(GingerResourceType::PAGE) do |page|
+    @my_created_pages = page.list_created_by(session[:username])
+    @my_shared_pages = page.list_shared_with(session[:username])
+    @my_group_pages = page.list_shared_with_user_groups(session[:username])
+  end
+
+  haml :my_pages
+end
+
+get '/forbidden', :auth => [:user] do
+  haml :forbidden
+end
+
+get '/help', :auth => [:user] do
+  help_text = <<-END
 h2. Variables
 
 Set the value of "var" to "b":
@@ -780,12 +778,11 @@ http://hostname:port/page/pagename?id=test_id&format=csv&col_separator=%7C&quote
 
 This url specifies The line separator as $, and the quote as ". The column separator is given as %7C, which is the url encoded value of the | character. Not all symbols need to be encoded like this. It is necessary only if the application displays an error.
 
-    END
+  END
 
-    @page = {
-        :content => RedCloth.new(help_text).to_html
-    }
+  @page = {
+      :content => RedCloth.new(help_text).to_html
+  }
 
-    haml :show_page
-  end
+  haml :show_page
 end
