@@ -20,9 +20,9 @@ class ContentGenerator
   end
 
   def parse_param_data(template_params)
-    name = strip_quotes(template_params[:name].to_s)
-    title = strip_quotes(template_params[:title].to_s)
-    type = strip_quotes(template_params[:type].to_s)
+    name = strip_quotes(template_params['name'].to_s)
+    title = strip_quotes(template_params['title'].to_s)
+    type = strip_quotes(template_params['type'].to_s)
 
     return name, title, type
   end
@@ -108,18 +108,18 @@ class ContentGenerator
         elsif !template_params.has_key?('title')
           text('[No title specified for input field.]')
         elsif !template_params.has_key?('options')
-          text("[No options have been specified for input #{template_params[:name]}.]")
+          text("[No options have been specified for input #{template_params['name']}.]")
         elsif !template_params.has_key?('values')
-          text("[No values have been specified for input #{template_params[:name]}.]")
+          text("[No values have been specified for input #{template_params['name']}.]")
         else
-          options = template_params[:options].to_a.collect { |item| item.to_s }
-          values = template_params[:values].to_a.collect { |item| item.to_s }
+          options = template_params['options'].to_a.collect { |item| item.to_s }
+          values = template_params['values'].to_a.collect { |item| item.to_s }
 
           options = [options] unless options.is_a?(Array)
           values = [values] unless values.is_a?(Array)
 
           if options.length != values.length
-            text("[Options and values of input #{template_params[:name]} are not of equal length.]")
+            text("[Options and values of input #{template_params['name']} are not of equal length.]")
           else
             name, title, type = parse_param_data(template_params)
             store_param_data(stored_data, template_params, params, name, title, type)
@@ -150,8 +150,8 @@ class ContentGenerator
       text('[values have not been specified for case statement.]')
     end
 
-    options = template_params[:options]
-    values = template_params[:values]
+    options = template_params['options']
+    values = template_params['values']
 
     options = [options] unless options.is_a?(Array)
     values = [values] unless values.is_a?(Array)
@@ -172,8 +172,8 @@ class ContentGenerator
 
       if index_of_value != nil
         stored_data[:user_variables][destination] = strip_quotes(values[index_of_value])
-      elsif template_params[:default]
-        stored_data[:user_variables][destination] = strip_quotes(template_params[:default])
+      elsif template_params['default']
+        stored_data[:user_variables][destination] = strip_quotes(template_params['default'])
       else
         error = empty_text
       end
@@ -312,7 +312,7 @@ class ContentGenerator
 
       error = nil
 
-      connection = connect(data_source, template_params[:database])
+      connection = connect(data_source, template_params['database'])
 
       query = parameters[:data][:query]
 
@@ -345,7 +345,7 @@ class ContentGenerator
     return text('[Neither data source nor reference found]') if result_set == nil
 
     if template_params.has_key?('store')
-      stored_data[:user_variables][template_params[:store].to_s] = result_set
+      stored_data[:user_variables][template_params['store'].to_s] = result_set
       empty_text
     elsif parameters[:data][:format].to_s == 'table'
       text(render_table(cols, result_set, markdown_table_class_added, parameters[:data][:conditional_formatting]))
@@ -365,16 +365,16 @@ class ContentGenerator
       elsif !parameters[:data][:arguments].has_key?('value_column')
         text("Can't display a dropdown without value_column.")
       else
-        option_col_index = cols.index(parameters[:data][:arguments][:option_column].to_s)
-        value_col_index = cols.index(parameters[:data][:arguments][:value_column].to_s)
+        option_col_index = cols.index(parameters[:data][:arguments]['option_column'].to_s)
+        value_col_index = cols.index(parameters[:data][:arguments]['value_column'].to_s)
 
         if option_col_index == nil
           text("Can't display dropdown without a valid option_column.")
         elsif value_col_index == nil
           text("Can't display dropdown without a valid value_column.")
         else
-          name = parameters[:data][:arguments][:name].to_s
-          title = strip_quotes(parameters[:data][:arguments][:title].to_s)
+          name = parameters[:data][:arguments]['name'].to_s
+          title = strip_quotes(parameters[:data][:arguments]['title'].to_s)
 
           html = "<span><select name=p_#{name}><option value=''>[#{title}]</option>"
 
@@ -393,7 +393,7 @@ class ContentGenerator
         end
       end
     elsif %w(line, bar, pie).include?(parameters[:data][:format].to_s)
-      text(emit_chart(parameters[:data][:format].to_s.to_sym, result_set, cols, template_params[:name], template_params[:title], template_params[:xtitle], template_params[:ytitle], template_params[:height].to_i, template_params[:width].to_i))
+      text(emit_chart(parameters[:data][:format].to_s.to_sym, result_set, cols, template_params['name'], template_params['title'], template_params['xtitle'], template_params['ytitle'], template_params['height'].to_i, template_params['width'].to_i))
     else
       if result_set.length == 1 && result_set[0].length == 1
         text((result_set[0][0] || 'nil').to_s)
