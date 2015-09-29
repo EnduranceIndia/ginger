@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 ### BEGIN INIT INFO
 # Provides: ginger
@@ -9,8 +9,10 @@
 
 BASE_DIR=`dirname $0`
 BASE_DIR=`readlink -m $BASE_DIR`
-
+BASE_DIR=`dirname $BASE_DIR`
+BASE_DIR=`dirname $BASE_DIR`
 PID_FILE=$BASE_DIR/unicorn.pid
+CURRENT=$BASE_DIR/current
 
 source ~/.bash_profile
 
@@ -31,7 +33,7 @@ function start_service {
 		rm $PID_FILE
 	fi
 
-	rbenv exec unicorn -c $BASE_DIR/unicorn.rb -p 4567 -E development -D
+	rbenv exec unicorn -c $CURRENT/unicorn.rb -p 4567 -E development -D
 }
 
 case $1 in
@@ -59,4 +61,3 @@ status)
 	echo Unexpected command
 	exit 1
 esac
-
